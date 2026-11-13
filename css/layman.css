@@ -1,9 +1,9 @@
 /* Layman help layer: additive styles that reuse the existing palette (purple #7C3AED, deep #301768, amber #F59E0B) */
 .tag{display:none} /* builder labels like "Entry · World hub" */
-.lm-term{text-decoration:underline dotted rgba(124,58,237,.55);text-underline-offset:3px;text-decoration-thickness:1.5px;cursor:help}
+.lm-term{text-decoration:underline dotted #7C3AED;text-underline-offset:3px;text-decoration-thickness:2px;background:rgba(124,58,237,.08);border-radius:3px;cursor:help}
 code.lm-term{text-decoration-color:rgba(124,58,237,.6)}
 .lm-noterms .lm-term:not(code){text-decoration:none;cursor:inherit}
-.lm-star{cursor:help}.lm-star:hover{text-decoration:underline dotted;text-underline-offset:3px}
+.lm-star{cursor:help;text-decoration:underline dotted;text-underline-offset:3px}.lm-star::after{content:"i";display:inline-block;width:.95em;height:.95em;line-height:.95em;margin-left:2px;border-radius:50%;background:#7C3AED;color:#fff;font:700 .6em/0.95em Inter,sans-serif;text-align:center;vertical-align:super;font-style:normal}
 .lm-xbtn{margin-left:auto;cursor:pointer;font-size:10px!important;flex:none}
 .codehd .lm-xbtn{order:99}
 .lm-exp .ln{cursor:help}
@@ -79,3 +79,12 @@ code.lm-term{text-decoration-color:rgba(124,58,237,.6)}
 @media (max-width:600px){.mc-btn span{display:none}.mc-btn{padding:4px!important}#mc-panel{right:10px;left:10px;width:auto;height:calc(100vh - 60px)}}
 .dark-page #mc-panel,.dark-page .mc-bub{background:#111827;border-color:#4C3A8C;color:#E5E7EB}
 .dark-page .mc-in input{background:#0B1020;border-color:#1F2937;color:#E5E7EB}
+
+/* hidden must win over display rules (fixes the chat ✕, popover and strip not hiding) */
+#lm-root [hidden],#mc-panel[hidden],#lm-mob[hidden],#lm-pop[hidden]{display:none!important}
+.mc-x{min-width:36px;min-height:32px;font-size:15px!important;position:relative;z-index:2}
+#demo-bar .lm-bar .lm-whatbtn{background:#7C3AED;color:#fff;box-shadow:0 2px 0 #4C1D95}
+/* phones only: readable mission screens, swipe to pan */
+body.lm-phone #viewport{overflow:auto;-webkit-overflow-scrolling:touch}
+body.lm-phone #app.screen{position:absolute}
+@media (max-width:600px){#demo-bar .tagline{display:none}#demo-bar{padding:0 8px;gap:6px}#demo-bar .lm-bar .btn{padding:5px 8px}}

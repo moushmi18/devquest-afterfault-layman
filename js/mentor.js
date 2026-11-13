@@ -168,7 +168,7 @@ function openPanel() {
   let p = $("#mc-panel");
   if (!p) {
     p = document.createElement("div"); p.id = "mc-panel"; p.className = "card"; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "Chat with Vyapti");
-    p.innerHTML = `<div class="mc-hd"><img class="orb" src="${ART}vyapti-speak.jpg" alt="Vyapti"><div class="f1"><b class="lm-pt">Vyapti</b><span class="mini mc-where"></span></div><span class="mc-mode"></span><button type="button" class="btn g sm" data-mc="close" aria-label="Close chat">✕</button></div>
+    p.innerHTML = `<div class="mc-hd"><img class="orb" src="${ART}vyapti-speak.jpg" alt="Vyapti"><div class="f1"><b class="lm-pt">Vyapti</b><span class="mini mc-where"></span></div><span class="mc-mode"></span><button type="button" class="btn g sm mc-x" data-mc="close" aria-label="Close chat" title="Close chat">✕</button></div>
       <div class="mc-log" aria-live="polite"></div><div class="mc-chips"></div>
       <form class="mc-in"><input type="text" maxlength="400" placeholder="Ask Vyapti… e.g. what is a token?" aria-label="Message Vyapti"><button type="submit" class="btn sm">Send</button></form>`;
     document.getElementById("lm-root").appendChild(p);
@@ -184,7 +184,7 @@ document.addEventListener("click", e => {
   if (b.dataset.mc === "open") return MC.open && !$("#mc-panel").hidden ? ($("#mc-panel").hidden = true, MC.open = false) : openPanel();
   if (b.dataset.mc === "close") { $("#mc-panel").hidden = true; MC.open = false; }
 }, true);
-document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("#mc-panel")) e.stopPropagation(); }, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && MC.open) { const p = $("#mc-panel"); if (p) p.hidden = true; MC.open = false; return; } if (e.target.closest && e.target.closest("#mc-panel")) e.stopPropagation(); }, true);
 document.addEventListener("DOMContentLoaded", () => {
   const bar = document.querySelector("#demo-bar .lm-bar") || document.getElementById("demo-bar");
   const b = document.createElement("button"); b.type = "button"; b.className = "btn sm g mc-btn"; b.dataset.mc = "open"; b.title = "Chat with Vyapti, your mentor";

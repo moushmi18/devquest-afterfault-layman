@@ -150,7 +150,7 @@ function welcome(i = 0) {
   const m = modal(`<div class="kick">Welcome · ${i + 1} of ${WELCOME.length}</div><h2>${t}</h2><div class="lm-body">${body}</div>
     <div class="lm-dots">${WELCOME.map((_, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</div>
     <div class="row lm-foot"><button type="button" class="btn g sm" data-lm="wskip">${last ? "Close" : "Skip"}</button><span class="sp"></span>${i ? `<button type="button" class="btn g sm" data-lm="wprev">Back</button>` : ""}${last ? `<button type="button" class="btn g sm" data-lm="tour">Quick tour</button><button type="button" class="btn sm" data-lm="wskip">Start playing</button>` : `<button type="button" class="btn sm" data-lm="wnext">Next</button>`}</div>`, "lm-welcome");
-  m.dataset.i = i; LS.set("welcomed", true); armTry(m);
+  m.dataset.i = i; LS.set("welcomed2", true); armTry(m);
 }
 /* try-it widget */
 function tryitHTML() {
@@ -274,9 +274,10 @@ function boot() {
   mo.observe(a, {childList:true, subtree:true}); pass();
   const bar = document.getElementById("demo-bar");
   const box = document.createElement("span"); box.className = "lm-bar";
-  box.innerHTML = `<button type="button" class="btn sm g" id="lm-helpbtn" data-lm="help">? Help</button><button type="button" class="btn sm g lm-glossbtn" data-lm="gloss">Glossary</button>`;
+  box.innerHTML = `<button type="button" class="btn sm lm-whatbtn" data-lm="welcome" title="Open the welcome guide">What is this?</button><button type="button" class="btn sm g" id="lm-helpbtn" data-lm="help">? Help</button><button type="button" class="btn sm g lm-glossbtn" data-lm="gloss">Glossary</button>`;
   bar.insertBefore(box, bar.querySelector("[data-act=restart]"));
-  if (!LS.get("welcomed", false)) welcome(0);
+  if (!LS.get("welcomed2", false)) welcome(0);
+  phoneFit();
 }
 document.addEventListener("DOMContentLoaded", boot);
 addEventListener("pagehide", save);
@@ -290,10 +291,26 @@ function mobileStrip() {
   if (!portrait || free < 220 || !obj) { if (el) el.hidden = true; return; }
   if (!el) { el = document.createElement("div"); el.id = "lm-mob"; el.className = "card"; root.appendChild(el); }
   el.hidden = false;
-  const html = `<div class="kick">${esc(a.querySelector(".main .kick") ? a.querySelector(".main .kick").textContent : "")}</div>${h2 ? `<b class="lm-pt">${esc(h2.textContent)}</b>` : ""}<p><b>Goal:</b> ${esc(obj.textContent.replace(/^OBJECTIVE/, ""))}</p>${tip ? `<p><b>Tip:</b> ${esc(tip.textContent)}</p>` : ""}<p class="lm-soft">Turn your phone sideways for a bigger view. Pinch to zoom works too.</p>`;
+  const html = `<div class="kick">${esc(a.querySelector(".main .kick") ? a.querySelector(".main .kick").textContent : "")}</div>${h2 ? `<b class="lm-pt">${esc(h2.textContent)}</b>` : ""}<p><b>Goal:</b> ${esc(obj.textContent.replace(/^OBJECTIVE/, ""))}</p>${tip ? `<p><b>Tip:</b> ${esc(tip.textContent)}</p>` : ""}<p class="lm-soft">Swipe sideways on the game to see all of it. Turning your phone sideways gives a bigger view.</p>`;
   if (el._h !== html) { el._h = html; el.innerHTML = html; }
 }
 addEventListener("resize", () => requestAnimationFrame(mobileStrip));
+
+/* ---------- phones: mission screens at a readable size, swipe sideways to pan (desktop untouched) */
+const _fit = fit;
+function phoneOn() { return innerWidth <= 600 && innerHeight > innerWidth && !(typeof isHubScene === "function" && isHubScene() && hubPortrait()); }
+function phoneFit() {
+  const a = app(), vp = document.getElementById("viewport"); if (!a || !vp) return;
+  const on = phoneOn();
+  document.body.classList.toggle("lm-phone", on);
+  if (!on) { if (a._ph) { a._ph = 0; a.style.left = a.style.top = a.style.transformOrigin = ""; _fit(); } return; }
+  const s = Math.max(0.45, Math.min(0.62, (innerHeight - 36) * 0.62 / 720));
+  if (!a._ph) { a._ph = 1; vp.scrollLeft = 0; }
+  a.style.transformOrigin = "0 0"; a.style.left = "0px"; a.style.top = "8px"; a.style.transform = `scale(${s})`;
+  requestAnimationFrame(mobileStrip);
+}
+fit = function () { if (phoneOn()) return phoneFit(); phoneFit(); _fit(); };
+addEventListener("resize", () => phoneFit());
 
 /* ---------- events */
 let hoverT = null;
