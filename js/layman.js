@@ -322,7 +322,7 @@ document.addEventListener("click", e => {
   const xb = t.closest(".lm-xbtn");
   if (xb) { e.stopImmediatePropagation(); setExplain(!pref.explain); return; }
   const ln = t.closest(".lm-exp .ln");
-  if (ln) { e.stopImmediatePropagation(); showPop(ln, hintFor(ln)); return; }
+  if (ln && !ln.closest(".debug-find")) { e.stopImmediatePropagation(); showPop(ln, hintFor(ln)); return; }
   const g = t.closest("[data-lm-gloss]"); if (g) { glossary(g.dataset.lmGloss); return; }
   const b = t.closest("[data-lm]");
   if (b) { e.stopImmediatePropagation(); const a = b.dataset.lm, v = b.closest(".lm-veil");
