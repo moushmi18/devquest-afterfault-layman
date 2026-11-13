@@ -189,8 +189,8 @@ function renderAssign() {
   let content="", tip="as0", speak="idle";
   const ev = ASSIGN_EVENTS[Math.min(step,3)];
   if (step<=3) {
-    content = `<div class="row" style="flex:1">${[1,2,3].map(n=>chatCol(n,state.chats[n])).join("")}
-      <div class="col" style="width:${step===1?"290px":"270px"}">${step===0?`<div class="card dlg">${dl("me","Three chats breaking three ways. Priority: the refund chat. Money plus silence is a lawsuit vibe.",state.avatar)}${dl("samar","Chat 2 just went dry. Tap's open, nothing's coming.")}</div>`:""}
+    content = `<div class="row" style="flex:1;min-height:0">${[1,2,3].map(n=>chatCol(n,state.chats[n])).join("")}
+      <div class="col as-side" style="width:${step===1?"290px":"270px"};min-height:0;overflow:auto">${step===0?`<div class="card dlg">${dl("me","Three chats breaking three ways. Priority: the refund chat. Money plus silence is a lawsuit vibe.",state.avatar)}${dl("samar","Chat 2 just went dry. Tap's open, nothing's coming.")}</div>`:""}
         ${step===1 && state.asPicked==="Mark all good" && !state.asResolved ? fb("bad","Consequence:","the customer sees a green tick on half a sentence.")+`<div class="card col" style="gap:6px;padding:12px;border-color:#FDE68A;background:#FFFBEB"><div class="lbl" style="color:#B45309">Hints</div><div class="mini" style="color:#111827"><b>1 ·</b> Did anything say this reply finished?</div><div style="font-size:13px"><b>2 ·</b> No \`finish_reason\` means unfinished. Keep the text, but don't call it complete.</div><div class="mini"><b>3 ·</b> locked</div></div>${dl("tanvi","Never \"all good\". That's how we got here.")}`:""}
         ${step===2?`<div class="card dlg">${dl("rohan","Chat 3 errored before a single word. Hammer retry?")}${dl("vyapti","One careful retry, after a pause. A storm is just retries with no patience.")}</div>${codeBlock(`if result["status"] == "error" and not result["text"]:
     wait(1.0)   # pause, then one retry*
@@ -206,18 +206,18 @@ elif finish == "length": status = "truncated"
 else:                  status = "partial"`,"SIM · honest status (revealed)",{},"xs"):""}
         ${state.asResolved?fb("ok",ev.okFb[0],ev.okFb[1]):(state.asPicked && state.asPicked!==ev.correct && !(step===1 && state.asPicked==="Mark all good")?fb("bad",ev.otherBad?ev.otherBad[0]:ev.badFb[0],ev.otherBad?ev.otherBad[1]:ev.badFb[1]):"")}
       </div></div>
-      <div class="card col" style="gap:8px;border-color:#7C3AED;border-width:3px;padding:12px"><div class="row" style="align-items:center;gap:8px">${chip("INCOMING EVENT · "+ev.chat,"dk")}<b class="pop" style="color:#301768;font-size:14px">${md(ev.txt)}</b><span class="sp"></span><span class="mini">seed #A7-3 · events arrive one by one</span></div>
+      <div class="card col" style="flex-shrink:0;gap:8px;border-color:#7C3AED;border-width:3px;padding:12px"><div class="row" style="align-items:center;gap:8px">${chip("INCOMING EVENT · "+ev.chat,"dk")}<b class="pop" style="color:#301768;font-size:14px">${md(ev.txt)}</b><span class="sp"></span><span class="mini">seed #A7-3 · events arrive one by one</span></div>
         ${tileBank(state.asPicked, state.asResolved?"ok":(state.asPicked && state.asPicked!==ev.correct?"bad":"p"))}
-        ${state.asResolved?`<div class="row" style="justify-content:flex-end">${btn("Next event "+ic("play",14,"#fff"),"as-next")}</div>`:""}
+        ${state.asResolved?`<div class="row as-go" style="justify-content:flex-end">${btn("Next event "+ic("play",14,"#fff"),"as-next")}</div>`:""}
       </div>`;
     tip = ["as0","as1","as2","as3"][step]; speak = step===2?"speak":"idle";
   } else if (step===4) {
     const form=[["Flag","`--temperature`"],["Type","float"],["Default","0.7*"],["Valid range","0.0 → 2.0"],["Usage log","`[usage] prompt= completion= total=` → stderr"]];
     const fr = form.map(([k,v])=>`<div style="display:flex;align-items:center;gap:10px"><span class="lbl" style="width:90px">${k}</span><div style="flex:1;border:2px solid #E5E7EB;border-radius:12px;padding:7px 10px;font:600 13px Inter;background:#fff">${md(v)}</div></div>`).join("");
-    content = `<div class="row" style="flex:1"><div class="card col" style="width:380px"><div class="row" style="align-items:center;gap:8px">${ic("term",18,"#7C3AED")}<b class="pop" style="color:#301768">CLI bot builder</b></div>${fr}
+    content = `<div class="row" style="flex:1;min-height:0"><div class="card col" style="width:380px"><div class="row" style="align-items:center;gap:8px">${ic("term",18,"#7C3AED")}<b class="pop" style="color:#301768">CLI bot builder</b></div>${fr}
       <div style="margin-top:4px">${pbar(state.cliBuilt?100:40,"#7C3AED",8)}</div>
       ${state.cliBuilt?chip(ic("check",11,"#047857")+" range check added","grn"):btn("Add range check","cli-build","","sm")}</div>
-      <div class="col f1">${codeBlock(`p = argparse.ArgumentParser(description="Streaming CLI chat")
+      <div class="col f1" style="min-height:0;overflow:auto">${codeBlock(`p = argparse.ArgumentParser(description="Streaming CLI chat")
 p.add_argument("--temperature", type=float, default=0.7)
 args = p.parse_args()
 if not 0.0 <= args.temperature <= 2.0:
@@ -225,7 +225,7 @@ if not 0.0 <= args.temperature <= 2.0:
       ${state.cliBuilt?`<div class="term" style="font-size:12px"><span class="dim">$ python stream_chat.py --temperature 2.5</span>
 usage: stream_chat.py [-h] [--temperature TEMPERATURE] [--model MODEL]
 <span class="er">stream_chat.py: error: --temperature must be between 0.0 and 2.0</span></div>`:""}
-      ${state.cliBuilt?`<div class="row" style="justify-content:flex-end">${btn("See the board "+ic("play",14,"#fff"),"as-next")}</div>`:""}</div></div>`;
+      </div></div>${state.cliBuilt?`<div class="row as-go" style="justify-content:flex-end;flex-shrink:0">${btn("See the board "+ic("play",14,"#fff"),"as-next")}</div>`:""}`;
     tip="asCli";
   } else {
     const c1={...state.chats[1], status:"error", text:"Your order is ", caret:false, extra:'<span class="mini">Regenerate offered</span>'};
@@ -235,7 +235,7 @@ usage: stream_chat.py [-h] [--temperature TEMPERATURE] [--model MODEL]
       <div class="term" style="font-size:12.5px"><span class="dim">[usage]</span> prompt=12 completion=7 total=19 status=complete   <span class="dim"># chat 3</span>
 <span class="dim">[usage]</span> prompt=? completion=? total=? status=partial    <span class="dim"># chat 2</span>
 <span class="dim">[usage]</span> prompt=? completion=? total=? status=error      <span class="dim"># chat 1</span></div>
-      <div class="card" style="display:flex;align-items:center;gap:16px;border-color:#F59E0B;background:linear-gradient(90deg,#F3EFFE,#FFF6DF)"><div style="flex:1"><div style="font:800 20px Poppins;color:#301768">Three chats, three honest labels.</div><div class="mini">No green tick on half a line · CLI flag built</div></div><div style="font:800 28px Poppins;color:#F59E0B">+10*</div>${btn("Continue to Predictions "+ic("play",14,"#fff"),"to-pred")}</div>`;
+      <div class="card as-done" style="display:flex;align-items:center;gap:16px;border-color:#F59E0B;background:linear-gradient(90deg,#F3EFFE,#FFF6DF)"><div style="flex:1"><div style="font:800 20px Poppins;color:#301768">Three chats, three honest labels.</div><div class="mini">No green tick on half a line · CLI flag built</div></div><div style="font:800 28px Poppins;color:#F59E0B">+10*</div>${btn("Continue to Predictions "+ic("play",14,"#fff"),"to-pred")}</div>`;
     tip="asDone"; speak="speak";
   }
   const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 3 · Assign</div><h2>Dinner rush console</h2></div><div class="sp"></div>${chip("Rain ↑ · 3 live chats","red")}</div>${content}</div>`;

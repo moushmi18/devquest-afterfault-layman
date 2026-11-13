@@ -88,3 +88,11 @@ code.lm-term{text-decoration-color:rgba(124,58,237,.6)}
 body.lm-phone #viewport{overflow:auto;-webkit-overflow-scrolling:touch}
 body.lm-phone #app.screen{position:absolute}
 @media (max-width:600px){#demo-bar .tagline{display:none}#demo-bar{padding:0 8px;gap:6px}#demo-bar .lm-bar .btn{padding:5px 8px}}
+/* Phone canvas is a window onto the left of the 1280 stage. Keep Assign's advance
+   button in that window; on wider screens it stays at the right, like other stages. */
+.as-side>*{flex-shrink:0}
+@media (max-width:600px){
+  .as-go{justify-content:flex-start!important}
+  .as-done{flex-wrap:wrap}
+  .as-done>.btn{order:-1}
+}
