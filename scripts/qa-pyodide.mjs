@@ -98,9 +98,22 @@ try {
   const mOk = await page.evaluate(() => state.masteryCodeOk);
   if (!mOk) issues.push("Mastery code did not pass with template");
 
-  // Mobile screenshot of python output
+  // Mobile screenshot of python output (Independent, after a real run)
   await page.setViewport({ width: 375, height: 812 });
-  await page.evaluate(() => { fit(); });
+  await page.evaluate(() => {
+    jumpStage(4);
+    state.codeTier = "indep";
+    state.pySrc = CONSUME_TEMPLATE;
+    state.testStates = INDEP_TESTS_REAL.map(() => "pass");
+    state.testsDone = true;
+    state.pyReal = true;
+    state.realPass = 5;
+    state.pyOut = "Your order is on the way.";
+    state.pyErr = null;
+    render();
+    fit();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+  });
   await shot("qa-py-06-indep-mobile.png");
 
   // Desktop 1440 hub
