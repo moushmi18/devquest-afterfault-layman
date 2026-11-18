@@ -5,6 +5,39 @@
   color: #92400E; background: #FEF3C7; border: 1.5px solid #F59E0B;
   border-radius: 6px; padding: 3px 7px; white-space: nowrap;
 }
+.real-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font: 700 10px/1 Poppins; letter-spacing: .04em; text-transform: uppercase;
+  color: #065F46; background: #D1FAE5; border: 1.5px solid #10B981;
+  border-radius: 6px; padding: 3px 7px; white-space: nowrap;
+}
+.py-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border: 2px solid #A7F3D0; background: #ECFDF5; border-radius: 12px;
+  padding: 8px 12px; margin-bottom: 8px;
+}
+.py-bar.loading { border-color: #FDE68A; background: #FFFBEB; }
+.py-bar.err { border-color: #FECACA; background: #FEF2F2; }
+.py-bar.idle { border-color: #C4B5FD; background: #F5F3FF; }
+.spinny {
+  width: 16px; height: 16px; border: 2px solid #F59E0B; border-top-color: transparent;
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.py-editor {
+  width: 100%; min-height: 220px; resize: vertical; box-sizing: border-box;
+  font: 500 12px/1.45 "JetBrains Mono", monospace; color: #111827;
+  background: #0B1020; color: #E5E7EB; border: 2px solid #301768; border-radius: 12px;
+  padding: 10px 12px; tab-size: 4;
+}
+.py-editor:focus { outline: 2px solid #7C3AED; outline-offset: 1px; }
+.py-out {
+  font: 500 12px/1.45 "JetBrains Mono", monospace; white-space: pre-wrap;
+  background: #111827; color: #D1FAE5; border-radius: 10px; padding: 8px 10px;
+  max-height: 120px; overflow: auto;
+}
+.py-out.err { color: #FECACA; }
+.screen.dark .py-editor { background: #0B1020; border-color: #7C3AED; }
 .sim-row { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .stage-pill {
   display: inline-block; font: 700 11px Poppins; color: #7C3AED;

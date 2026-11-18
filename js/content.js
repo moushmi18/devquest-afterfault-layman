@@ -449,7 +449,7 @@ const TIPS = {
   guided: ["Line 14 decides \"complete\" before looking at anything. What did the stream actually tell you?","Cut stream → expected \"partial\", got \"complete\". Hint 1: What did Assign teach?"],
   guidedOk: ["Status comes after the loop, from error and finish_reason.","Step 4 is green. Continue to Independent."],
   indepFail: ["14 green, 1 red. Having text isn't the same as finishing. Which signal says done?","T3 failed: quiet stream expected partial, got complete. Change the complete condition."],
-  indepOk: ["Line Keeper forged. Every word, and the truth about every word.","All 15 tests passed. Continue to Debug."],
+  indepOk: ["Line Keeper forged. Every word, and the truth about every word.","All real Python checks passed on the mock stream. Continue to Debug."],
   p1: ["Phase one: keep every line live.","Five chats stream at once. Watch your Line Keeper work, then continue."],
   p2: ["Quiet isn't done. Label honestly, retry once with a pause, and treat `length` as truncated.","For each cut chat, pick the honest status."],
   recov: ["Let's replay one thing. Chat 4 went quiet. Quiet isn't done.","Code, Phase 1 and XP are kept. Hearts refill to 3. Back to Phase 2."],

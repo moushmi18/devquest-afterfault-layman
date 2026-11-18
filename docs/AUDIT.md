@@ -166,3 +166,52 @@
 4. Code/Debug/Mastery as real skill + assessment.
 5. UI clarity (stage/objective/task/primary action above fold).
 6. Label simulated execution everywhere.
+
+---
+
+## QA checklist (post Pyodide fix pass)
+
+**Date:** 2026-11-18 · Branch `cursor/afterfault-edu-streaming-f6c9` · Scripts: `scripts/qa-full.mjs`, `scripts/qa-pyodide.mjs`
+
+### Automated
+
+| Check | Result |
+|-------|--------|
+| `node scripts/qa-full.mjs` end-to-end stage smoke | **PASS** (no pageerrors / console errors) |
+| `node scripts/qa-pyodide.mjs` real Python + mock stream | **PASS** |
+| Broken Independent starter fails T3/T4/T5; good template passes T1–T5 | Verified |
+| Debug Bug 1 Run broken → TypeError on None concat | Verified |
+| Mastery challenge Run with template → `masteryCodeOk` | Verified |
+| Assign wrong answers not marked ok; Try again works | Verified |
+| Explore teach-card present for every beat before unlock | Verified |
+| Mastery help control hidden until after a run attempt | Verified |
+| Desktop 1440 / tablet 768 / mobile 375 screenshots | Captured under `/opt/cursor/artifacts/` |
+
+### Manual / product gaps closed this pass
+
+| Gap | Fix |
+|-----|-----|
+| Code/Debug/Mastery student code only simulated | Pyodide lazy load + mock OpenAI-style stream; **Real Python · Mock API** badge |
+| Independent MCQ / fake 15 tests | Editable `consume()` + 5 real assertions |
+| Debug observe simulated only | Run broken / Run fixed via `BUG_RUNNERS` + Pyodide |
+| Mastery MCQ-only challenge | Python editor + harness; concepts optional after attempt; help after run |
+| Assign no retry after wrong | **Try again** (`as-retry`) |
+| Labels | Simulated vs Real Python badges on relevant stages |
+
+### Known limitations (not fixed)
+
+| Item | Why |
+|------|-----|
+| Bug 2 (flush) cannot fail in StringIO | Flush is a display concern; UI still teaches + re-tests symptom panels |
+| No live OpenAI API key in browser | Intentional — mock stream yields `choices[0].delta.content` / `finish_reason` |
+| Mobile uses pan/scale of 1280 canvas (`lm-phone`) | By design; swipe sideways / landscape for fuller view |
+| Guided tier still simulated checks | Teaching scaffold; Independent/Mastery are the real-execution gates |
+| Pyodide CDN dependency | Graceful error + Retry if CDN blocked |
+
+### Artifact screenshots
+
+- `qa-py-01-indep-editor.png` / `qa-py-02-indep-passed.png` — real Python Independent
+- `qa-py-03-debug-run.png` — Debug real crash output
+- `qa-py-04-mastery-editor.png` / `qa-py-05-mastery-passed.png` — Mastery real run
+- `qa-py-06-indep-mobile.png` — mobile Python UI
+- `qa-01`…`qa-12` — stage + responsive sweep

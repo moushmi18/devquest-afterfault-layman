@@ -5,7 +5,9 @@ Live preview: https://devquest-afterfault-layman.vercel.app
 ## What the game is
 DevQuest Afterfault, Mission 3.5 "The Unfinished Line" is a concept-driven coding mission. You play a junior engineer at Dabba Dash, a made-up food delivery app. Its support chatbot keeps stopping mid-sentence while the dashboard says "All good". Across 7 stages (Discovery → Explore → Assign → Predict → Code → Debug → Mastery) you learn streaming responses: teach first, then experiment, apply, predict, build, debug, and prove.
 
-Pedagogy notes: `docs/AUDIT.md`, redesign: `docs/REDESIGN.md`. In-browser demos are **simulated** (not live Python/API) and labelled as such.
+Pedagogy notes: `docs/AUDIT.md`, redesign: `docs/REDESIGN.md`.
+
+**Execution honesty:** Explore/Predict demos are **simulated** (labelled). Code · Independent, Debug runs, and Mastery use **real Python in the browser via Pyodide** against a **mock OpenAI-style stream** (no API key). Pyodide loads lazily from jsDelivr; if load fails, the UI shows an error and Retry.
 
 ## Educational redesign (streaming-first)
 - **Discovery** teaches what/why/how, terms, and a side-by-side comparison before any challenge.

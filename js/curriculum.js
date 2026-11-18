@@ -265,10 +265,11 @@ function masteryReportData() {
   const predN = Math.max((state.predResults || []).length, 1);
   const bugs = state.bugsFixed || 0;
   const asOk = state.asScore || 0;
-  const codeOk = !!(state.dd && state.dd.solved) && !!state.guidedFixed && state.indepCond === 'finish == "stop"';
+  const codeOk = !!(state.dd && state.dd.solved) && !!state.guidedFixed && !!state.pyReal && (state.realPass || 0) >= 5;
   const chal = state.masteryChal || {};
   const chalOk = MASTERY_CHALLENGE.checks.filter(c => chal[c.id] === c.correct).length;
   const chalN = MASTERY_CHALLENGE.checks.length;
+  const masteryCode = !!state.masteryCodeOk;
 
   const rows = [
     {
@@ -279,7 +280,7 @@ function masteryReportData() {
     {
       k: "Writing a consumer",
       v: codeOk ? "understands" : state.dd && state.dd.solved ? "did well" : "needs improvement",
-      note: codeOk ? "Micro + guided + independent aligned" : "Revisit Code · walkthrough and Line Keeper",
+      note: codeOk ? "Micro + guided + real Python checks" : "Revisit Code · walkthrough and Line Keeper",
     },
     {
       k: "Debugging",
@@ -288,12 +289,12 @@ function masteryReportData() {
     },
     {
       k: "Independent application",
-      v: chalOk === chalN ? "understands" : chalOk >= 3 ? "did well" : "needs improvement",
-      note: `${chalOk}/${chalN} mastery checks correct`,
+      v: masteryCode ? "understands" : chalOk >= 3 ? "did well" : "needs improvement",
+      note: masteryCode ? `Mastery consumer passed · concepts ${chalOk}/${chalN}` : `Mastery code pending · concepts ${chalOk}/${chalN}`,
     },
     {
       k: "Honest status & errors",
-      v: asOk >= 3 && chal.fail === 1 ? "understands" : "did well",
+      v: asOk >= 3 && (chal.fail === 1 || masteryCode) ? "understands" : "did well",
       note: "partial vs complete vs retry discipline",
     },
   ];
@@ -304,7 +305,7 @@ function renderMasteryReport(rows) {
   const icon = { understands: "check", "did well": "star", "needs improvement": "bulb" };
   const cls = { understands: "grn", "did well": "amb", "needs improvement": "red" };
   return `<div class="mastery-report" data-testid="mastery-report">
-    <div class="hd"><div><div class="kick">Mastery report</div><h2>What you can do now</h2></div>${SIM_BADGE}</div>
+    <div class="hd"><div><div class="kick">Mastery report</div><h2>What you can do now</h2></div>${typeof REAL_BADGE!=="undefined"?REAL_BADGE:SIM_BADGE}</div>
     <p class="mini" style="margin:0 0 8px">Based on Assign, Predict, Code, Debug, and this challenge — soft scores for learning, not a high-stakes exam.</p>
     <div class="mr-grid">${rows.map(r => `<div class="mr-row ${cls[r.v]}">
       <b>${esc(r.k)}</b>${chip(r.v, cls[r.v])}<span class="mini">${esc(r.note)}</span>

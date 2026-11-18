@@ -20,9 +20,9 @@ function initialState() {
     predI:0, predPhase:"q", predPick:null, predConf:"think so", predResults:[],
     codeTier:"brief", codeWalk:0, slots:{}, selectedTile:null, microWrong:false, microRan:false,
     hintLevel:0, guidedFixed:false, guidedChecked:false, guidedFails:0,
-    indepCond:"text", testStates:null, testsDone:false,
-    bugI:0, bugPhase:"observe", bugToast:null, bugsFixed:0,
-    bossPhase:"challenge", masteryChal:{}, masteryTried:false, masteryHelp:false, p2i:0, p2Pick:null, misses:0, missLog:[], p2Cleared:false, shakeBoss:false,
+    indepCond:"text", testStates:null, testsDone:false, pySrc:null, pyReal:false, pyOut:"", pyErr:null, realPass:0,
+    bugI:0, bugPhase:"observe", bugToast:null, bugsFixed:0, bugPy:null,
+    bossPhase:"challenge", masteryChal:{}, masteryTried:false, masteryHelp:false, masterySrc:null, masteryPy:null, masteryCodeOk:false, masteryConceptsDone:false, p2i:0, p2Pick:null, misses:0, missLog:[], p2Cleared:false, shakeBoss:false,
     unlocked36:false, _xpPop:false, missionDone:false, dd:ddInit(), hub:hubInit(), dq:dqInit(), xq:xqInit(), intro:introInit(),
   };
 }
@@ -52,9 +52,9 @@ function jumpStage(i) {
   if (i===1) { state.xq=xqInit(); state.exStep=0; state.exPlay=0; state.exCheck={}; state.flushOn=false; state.recapOrder=[null,null,null]; state.recapTapped=[]; }
   if (i===2) { state.asStep=0; state.asPicked=null; state.asResolved=false; state.asHint=0; state.asScore=0; state.cliBuilt=false; state.chats=defaultChats(); }
   if (i===3) { state.predI=0; state.predPhase="q"; state.predPick=null; state.predResults=[]; }
-  if (i===4) { state.dd=ddInit(); state.codeTier="brief"; state.codeWalk=0; state.slots={}; state.selectedTile=null; state.microWrong=false; state.microRan=false; state.hintLevel=0; state.guidedFixed=false; state.guidedChecked=false; state.guidedFails=0; state.indepCond="text"; state.testStates=null; state.testsDone=false; }
-  if (i===5) { state.bugI=0; state.bugPhase="observe"; state.bugToast=null; state.bugsFixed=0; }
-  if (i===6) { state.bossPhase="challenge"; state.masteryChal={}; state.masteryTried=false; state.masteryHelp=false; state.hearts=3; state.shield=100; state.p2i=0; state.misses=0; state.missLog=[]; state.p2Cleared=false; state.p2Pick=null; }
+  if (i===4) { state.dd=ddInit(); state.codeTier="brief"; state.codeWalk=0; state.slots={}; state.selectedTile=null; state.microWrong=false; state.microRan=false; state.hintLevel=0; state.guidedFixed=false; state.guidedChecked=false; state.guidedFails=0; state.indepCond="text"; state.testStates=null; state.testsDone=false; state.pySrc=null; state.pyReal=false; state.pyOut=""; state.pyErr=null; state.realPass=0; }
+  if (i===5) { state.bugI=0; state.bugPhase="observe"; state.bugToast=null; state.bugsFixed=0; state.bugPy=null; }
+  if (i===6) { state.bossPhase="challenge"; state.masteryChal={}; state.masteryTried=false; state.masteryHelp=false; state.masterySrc=null; state.masteryPy=null; state.masteryCodeOk=false; state.masteryConceptsDone=false; state.hearts=3; state.shield=100; state.p2i=0; state.misses=0; state.missLog=[]; state.p2Cleared=false; state.p2Pick=null; }
   render();
 }
 
@@ -190,7 +190,7 @@ function renderAssign() {
           <div class="opts one" style="margin-top:8px">${ops}</div>
           ${!state.asResolved && state.asPicked!=null ? `<div class="row" style="justify-content:flex-end;margin-top:8px">${btn("Submit decision","as-commit","data-testid='as-commit'")}</div>` : ""}
           ${state.asResolved ? fb(picked && picked.ok ? "ok" : "bad", picked && picked.ok ? "Correct application." : "Not the honest behaviour.", sc.why) : ""}
-          ${state.asResolved ? `<div class="row" style="justify-content:flex-end;margin-top:8px">${btn(step===3?"See summary "+ic("play",14,"#fff"):"Next scenario "+ic("play",14,"#fff"),"as-next","data-testid='as-next'")}</div>` : ""}
+          ${state.asResolved ? `<div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">${!(picked && picked.ok)?btn("Try again","as-retry","data-testid='as-retry'","g sm"):""}${btn(step===3?"See summary "+ic("play",14,"#fff"):"Next scenario "+ic("play",14,"#fff"),"as-next","data-testid='as-next'")}</div>` : ""}
         </div>
       </div>
     </div>`;
@@ -297,18 +297,18 @@ function codehd(tier,title) {
     const i=tiers.indexOf(t), c=tiers.indexOf(tier);
     return chip((i<c?"✓ ":"")+t, t===tier?"dk":(i<c?"grn":"gry"));
   }).join("");
-  return `<div class="hd"><div><div class="kick">Stage 5 · Code · ${tier}</div><h2>${title}</h2></div><div class="sp"></div>${pills}${SIM_BADGE}</div>`;
+  const badge = tier === "Independent" ? REAL_BADGE : SIM_BADGE;
+  return `<div class="hd"><div><div class="kick">Stage 5 · Code · ${tier}</div><h2>${title}</h2></div><div class="sp"></div>${pills}${badge}</div>`;
 }
-function testPanel(states, failNote) {
-  const rows = TESTS.map(([id,n,h],i)=>{
+function testPanelReal(states) {
+  const rows = INDEP_TESTS_REAL.map((t, i) => {
     const st = (states && states[i]) || "pend";
-    const note = (st==="fail" && id==="T3") ? (failNote||"Chat 2 shows a green tick on half a sentence") : "";
-    return testRow(id,n,st,!!h,note);
+    return testRow(t.id, t.name, st, false, "");
   }).join("");
-  const npass = states ? states.filter(s=>s==="pass").length : 0;
+  const npass = states ? states.filter(s => s === "pass").length : 0;
   const fail = states && states.includes("fail");
-  const running = states && states.includes("pend") && states.some(s=>s!=="pend");
-  return `<div class="card col" style="width:400px;gap:6px;padding:12px"><div class="row" style="align-items:center"><b class="pop" style="color:${state.dark?"#EDE7FD":"#301768"}">Server check</b><span class="sp"></span>${chip(npass+" / 15 passed", fail?"red":(npass===15?"grn":"gry"))}</div><div class="tests" data-testid="tests">${rows}</div></div>`;
+  return `<div class="card col" style="width:400px;gap:6px;padding:12px" data-testid="tests"><div class="row" style="align-items:center"><b class="pop" style="color:${state.dark?"#EDE7FD":"#301768"}">Real Python checks</b><span class="sp"></span>${chip(npass+" / "+INDEP_TESTS_REAL.length+" passed", fail?"red":(npass===INDEP_TESTS_REAL.length?"grn":"gry"))}</div><div class="tests">${rows}</div>
+    <div class="mini">Assertions run against a <b>mock</b> OpenAI-style stream (no API key).</div></div>`;
 }
 
 function renderCode() {
@@ -360,25 +360,26 @@ function renderCode() {
       <div class="row" style="align-items:center;gap:10px">${term}${btn("Check","guided-check","data-testid='guided-check'","sm")}${state.guidedFixed?btn("Next: Independent "+ic("play",14,"#fff"),"to-indep"):""}</div></div>`;
     tip = state.guidedFixed?"guidedOk":"guided";
   } else {
-    const cond = state.indepCond;
-    const marks = cond==='finish == "stop"' ? {13:"good"} : (state.testsDone?{13:"bad"}:{});
-    const fail = cond!=='finish == "stop"';
+    if (state.pySrc == null) state.pySrc = CONSUME_BROKEN_STATUS;
     const states = state.testStates;
-    const allPass = states && states.every(s=>s==="pass");
-    const eff = allPass ? `<div class="card col" style="gap:6px;padding:12px"><div class="row" style="align-items:center"><b class="pop" style="color:${state.dark?"#EDE7FD":"#301768"}">Ready for Debug</b><span class="sp"></span>${chip("simulated harness")}</div>
-      <div class="mini">Consumer shape matches: live print, single pass, honest status.</div>
-      <div class="row" style="gap:6px;align-items:center">${chip("✓ single pass","grn")}${chip("✓ list + join","grn")}${chip("✓ live","grn")}<span class="sp"></span><div style="font:800 22px Poppins;color:#F59E0B">+25*</div>${btn("Continue to Debug "+ic("play",12,"#fff"),"to-debug","","sm")}</div></div>` : "";
-    const condBtns = `<div class="row" style="gap:6px;flex-wrap:wrap"><span class="lbl">complete when</span>
-      ${['text', 'finish == "stop"', 'text.endswith(".")'].map(c=>`<button type="button" class="tile mono ${cond===c?"p":""}" data-act="indep-cond" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
-    main = `<div class="main">${codehd("Independent","Ship stream_chat.py")}
-      <div class="mini" style="margin-bottom:6px">Choose the correct <b>complete</b> condition. Checks below are a <b>simulated</b> harness — not a live Python runtime.</div>
-      <div class="row" style="flex:1"><div class="col f1">${codeBlock(INDEP_SRC(cond),"stream_chat.py · consume()",marks,"xs")}
-      ${condBtns}
-      ${state.testsDone && fail?`<div class="term" style="padding:8px 12px;font-size:11.5px"><span class="er">✕ T3</span> quiet stream after "the " → expected <span class="am">partial</span>, got <span class="am">complete</span></div>`:""}
-      ${eff}</div>${testPanel(states)}</div>
-      <div class="row" style="justify-content:flex-end;gap:8px">${btn("Simulated Run / Check","indep-check","data-testid='indep-check'","")}</div></div>`;
-    tip = allPass?"indepOk":(state.testsDone?"indepFail":"indepFail");
-    speak = allPass?"speak":"idle";
+    const allPass = state.pyReal && states && states.length === INDEP_TESTS_REAL.length && states.every(s => s === "pass");
+    const out = state.pyOut ? `<div class="py-out ${state.pyErr?"err":""}" data-testid="py-out">${esc(state.pyErr ? state.pyErr : state.pyOut)}</div>` : "";
+    const eff = allPass ? `<div class="card col" style="gap:6px;padding:12px"><div class="row" style="align-items:center"><b class="pop" style="color:${state.dark?"#EDE7FD":"#301768"}">Ready for Debug</b><span class="sp"></span>${chip("real Python","grn")}</div>
+      <div class="mini">Your consume() passed live assertions on a mock stream.</div>
+      <div class="row" style="gap:6px;align-items:center">${chip("✓ "+state.realPass+"/"+INDEP_TESTS_REAL.length,"grn")}<span class="sp"></span><div style="font:800 22px Poppins;color:#F59E0B">+25*</div>${btn("Continue to Debug "+ic("play",12,"#fff"),"to-debug","","sm")}</div></div>` : "";
+    main = `<div class="main">${codehd("Independent","Ship stream_chat.py — run real Python")}
+      ${pyLoadBar()}
+      <div class="mini" style="margin-bottom:6px">Edit <code class="inline">consume()</code>. The starter hard-codes <b>complete</b> — fix honest status, then Run. ${realLabel("")}</div>
+      <div class="row" style="flex:1;min-height:0"><div class="col f1" style="min-height:0">
+        <textarea class="py-editor" data-testid="py-editor" spellcheck="false" aria-label="Python consume function">${esc(state.pySrc)}</textarea>
+        ${out}${eff}
+      </div>${testPanelReal(states)}</div>
+      <div class="row" style="justify-content:flex-end;gap:8px">
+        ${btn("Reset starter","py-reset","data-testid='py-reset'","g sm")}
+        ${btn(PY.status==="loading"?"Loading…":"Run real Python checks","indep-check","data-testid='indep-check'", PY.status==="loading"?"dis":"")}
+      </div></div>`;
+    tip = allPass ? "indepOk" : (state.testsDone ? "indepFail" : "guided");
+    speak = allPass ? "speak" : "idle";
   }
   shell({cur:4,done:4,tag:"Code · "+state.codeTier}, sidePanel("Forge the Line Keeper: live, assembled, honest. Mentor explains; Coach hints without spoiling.", tip, [6,true], speak)+main);
 }
@@ -410,15 +411,20 @@ function renderDebug() {
   const marks = fixed ? b.fixedMarks : (state.bugPhase==="find" || observing ? {} : Object.fromEntries(b.badLines.map(n=>[n,"foc"])));
   const src = fixed ? b.fixedSrc : b.src;
   const toast = state.bugToast ? `<div class="fb am" style="padding:8px 12px"><span class="ico">${ic("eye",15,"#fff")}</span><div><b>Weak patch rejected:</b> ${md(state.bugToast.move)}<br>"${md(state.bugToast.resp)}"</div></div>` : "";
+  const bp = state.bugPy;
   const observePane = observing ? `<div class="card col" style="gap:8px;padding:12px" data-testid="bug-observe">
-      <div class="row" style="align-items:center;gap:8px">${chip("Level "+lvl.lvl+" · "+lvl.skill,"dk")}${SIM_BADGE}</div>
-      <div class="lbl">1 · Run / inspect (simulated)</div>
-      ${b.before}
+      <div class="row" style="align-items:center;gap:8px">${chip("Level "+lvl.lvl+" · "+lvl.skill,"dk")}${REAL_BADGE}</div>
+      ${pyLoadBar()}
+      <div class="lbl">1 · Run / inspect</div>
+      ${bp ? `<div class="py-out ${bp.ok && !bp.expectFail ? "" : "err"}" data-testid="bug-py-out">${esc(bp.summary)}</div>` : b.before}
       <div class="mini"><b>Clue:</b> ${esc(b.tipOff)}</div>
-      ${btn("I've inspected — find the line","bug-to-find","data-testid='bug-to-find'")}
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        ${btn(bp?"Re-run broken code":"Run broken code","bug-run","data-testid='bug-run'","g sm")}
+        ${btn("I've inspected — find the line","bug-to-find","data-testid='bug-to-find'")}
+      </div>
     </div>` : "";
   const fixes = state.bugPhase==="choose" ? `<div class="card col" style="gap:8px;padding:12px"><div class="lbl">3 · Pick a real fix (not a hide)</div>${b.fixes.map((f,i)=>btn(md(f.t),"bug-fix",`data-i="${i}" data-testid="fix-${i}"`,"g sm fix-opt")).join("")}</div>`
-    : (fixed ? fb("ok", b.id+" fixed.", b.tipFixedOff)+`<div class="lbl">Re-test ${SIM_BADGE}</div>${b.after}`
+    : (fixed ? fb("ok", b.id+" fixed.", b.tipFixedOff)+`<div class="lbl">4 · Re-test ${REAL_BADGE}</div>${bp && bp.fixedSummary ? `<div class="py-out" data-testid="bug-py-fixed">${esc(bp.fixedSummary)}</div>` : b.after}${btn("Run fixed code","bug-run-fixed","data-testid='bug-run-fixed'","g sm")}`
     : (state.bugPhase==="find" ? `<div class="card" style="padding:12px" data-testid="find-hint"><div class="lbl">2 · Find the bug</div><div class="mini">Tap the buggy line, then choose a fix. Prefer a guard over a cast.</div></div>` : ""));
   const last = state.bugI===4 && fixed;
   const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 6 · Debug · Level ${lvl.lvl}/5</div><h2>${esc(b.title)}</h2></div><div class="sp"></div>${chip(lvl.skill,"amb")}</div>
@@ -459,33 +465,54 @@ const P2_EVENTS = [
 function renderBoss() {
   const ph = state.bossPhase;
   if (ph==="challenge") {
-    const chal = state.masteryChal || {};
+    if (state.masterySrc == null) state.masterySrc = CONSUME_BROKEN_STATUS;
     const help = state.masteryHelp;
+    const mp = state.masteryPy;
+    const tried = state.masteryTried;
+    const rows = mp && mp.states ? INDEP_TESTS_REAL.map((t, i) => testRow(t.id, t.name, mp.states[i] || "pend", false, "")).join("") : "";
+    const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 7 · Mastery · Independent build</div><h2>Working streaming consumer</h2></div><div class="sp"></div>${REAL_BADGE}</div>
+      ${pyLoadBar()}
+      <p class="mini" style="margin:0 0 8px">Build a consumer that renders progressively, keeps order, assembles the reply, handles completion, and detects incomplete/failed streams. Help unlocks only after you attempt a run. ${realLabel("")}</p>
+      <div class="row" style="flex:1;min-height:0;gap:12px">
+        <div class="col f1" style="min-height:0">
+          <textarea class="py-editor" data-testid="mastery-editor" spellcheck="false" aria-label="Mastery Python consume">${esc(state.masterySrc)}</textarea>
+          ${mp && mp.out ? `<div class="py-out ${mp.ok?"":"err"}" data-testid="mastery-py-out">${esc(mp.out)}</div>` : ""}
+          ${help ? `<div class="fb am"><span class="ico">${ic("bulb",15,"#fff")}</span><div><b>Coach:</b> use .get("content"); append+join in one pass; status = honest_status(error, finish) after the loop; quiet → partial.</div></div>` : ""}
+        </div>
+        <div class="card col" style="width:340px;gap:6px;padding:12px"><div class="lbl">Mastery harness · mock stream</div><div class="tests" data-testid="mastery-tests">${rows || `<div class="mini">Run to see T1–T5.</div>`}</div>
+          ${tried ? chip((mp && mp.pass || 0)+" / "+INDEP_TESTS_REAL.length+" passed", state.masteryCodeOk?"grn":"amb") : ""}
+        </div>
+      </div>
+      <div class="row" style="align-items:center;gap:10px;margin-top:10px">
+        <span class="sp"></span>
+        ${btn(PY.status==="loading"?"Loading…":"Run challenge","chal-run","data-testid='chal-submit'", PY.status==="loading"?"dis":"")}
+        ${tried && !help ? btn("Request help","chal-help","data-testid='chal-help'","g sm") : ""}
+        ${tried ? btn((state.masteryCodeOk?"Continue":"Continue anyway")+" "+ic("play",14,"#fff"),"boss-concepts","data-testid='boss-concepts'") : ""}
+      </div></div>`;
+    shell({cur:6,done:6,hearts:[3,3],tag:"Mastery · Challenge"}, sidePanel("Independent implementation. No step-by-step hints until you run once.", tried?"e6":"p1", null, tried?"speak":"idle")+main);
+    return;
+  }
+  if (ph==="concepts") {
+    const chal = state.masteryChal || {};
     const items = MASTERY_CHALLENGE.checks.map((c, idx) => {
       const picked = chal[c.id];
-      const revealed = state.masteryTried;
+      const revealed = !!state.masteryConceptsDone;
       const ops = c.ops.map((o, i) => {
         let s = "";
         if (revealed) s = i === c.correct ? "ok" : (i === picked ? "bad" : "dim");
         else if (picked === i) s = "sel";
         return opt("ABC"[i], o, s, "chal-pick", `data-id="${c.id}" data-i="${i}" data-testid="chal-${c.id}-${i}"`);
       }).join("");
-      return `<div class="learn-card"><i>Check ${idx+1}</i><b style="display:block;margin:4px 0 8px">${esc(c.q)}</b><div class="opts one">${ops}</div></div>`;
+      return `<div class="learn-card"><i>Concept ${idx+1}</i><b style="display:block;margin:4px 0 8px">${esc(c.q)}</b><div class="opts one">${ops}</div></div>`;
     }).join("");
-    const nOk = MASTERY_CHALLENGE.checks.filter(c => chal[c.id] === c.correct).length;
     const allAnswered = MASTERY_CHALLENGE.checks.every(c => chal[c.id] != null);
-    const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 7 · Mastery · Independent</div><h2>Streaming consumer challenge</h2></div><div class="sp"></div>${SIM_BADGE}</div>
-      <p class="mini" style="margin:0 0 8px">${esc(MASTERY_CHALLENGE.brief)} Afterfault framing: keep Dabba Dash chats honest — no cinematic gate.</p>
+    const main = `<div class="main"><div class="hd"><div><div class="kick">Mastery · Concept check</div><h2>Supplementary understanding</h2></div>${chip("optional support")}</div>
       <div class="as-grid" style="flex:1;overflow:auto">${items}</div>
-      ${help ? `<div class="fb am" style="margin-top:8px"><span class="ico">${ic("bulb",15,"#fff")}</span><div><b>Coach (after attempt):</b> complete only on finish_reason "stop"; accumulate with append+join in one pass; quiet mid-line → partial.</div></div>` : ""}
-      <div class="row" style="align-items:center;gap:10px;margin-top:10px">
-        ${state.masteryTried ? chip(nOk+" / "+MASTERY_CHALLENGE.checks.length+" correct", nOk===MASTERY_CHALLENGE.checks.length?"grn":"amb") : ""}
-        <span class="sp"></span>
-        ${!state.masteryTried ? btn("Submit challenge", allAnswered?"chal-submit":"noop","data-testid='chal-submit'", allAnswered?"":"dis") : ""}
-        ${state.masteryTried && !help ? btn("Request help","chal-help","data-testid='chal-help'","g sm") : ""}
-        ${state.masteryTried ? btn("Live scenarios "+ic("play",14,"#fff"),"boss-p2","data-testid='boss-p2'") : ""}
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px">
+        ${!state.masteryConceptsDone ? btn("Submit concepts", allAnswered?"chal-concepts-submit":"noop","data-testid='chal-concepts-submit'", allAnswered?"":"dis") : ""}
+        ${btn("Live scenarios "+ic("play",14,"#fff"),"boss-p2","data-testid='boss-p2'")}
       </div></div>`;
-    shell({cur:6,done:6,hearts:[3,3],tag:"Mastery · Challenge"}, sidePanel("Prove you can apply streaming independently. Help unlocks only after you attempt.", state.masteryTried?"e6":"p1", null, state.masteryTried?"speak":"idle")+main);
+    shell({cur:6,done:6,hearts:[3,3],tag:"Mastery · Concepts"}, sidePanel("Quick conceptual check — coding already proved the skill.", "e6", null)+main);
     return;
   }
   if (ph==="report") {
@@ -655,22 +682,125 @@ function playExplore() {
   timer = setTimeout(tick, 200);
 }
 
-function runIndepTests() {
+function syncPyEditor(sel, key) {
+  const el = document.querySelector(sel);
+  if (el && typeof el.value === "string") state[key] = el.value;
+}
+
+async function runIndepTests() {
   clearT();
-  const fail = state.indepCond !== 'finish == "stop"';
-  state.testStates = TESTS.map(()=>"pend");
+  syncPyEditor("[data-testid=py-editor]", "pySrc");
+  state.testStates = INDEP_TESTS_REAL.map(() => "pend");
   state.testsDone = false;
+  state.pyReal = false;
+  state.pyOut = "";
+  state.pyErr = null;
+  state.realPass = 0;
   render();
-  let i = 0;
-  const step = () => {
-    if (i>=15) { state.testsDone = true; if (!fail) setXP(65); render(); return; }
-    const id = TESTS[i][0];
-    state.testStates[i] = (fail && id==="T3") ? "fail" : "pass";
-    i++;
+  try {
+    await pyEnsure(() => render());
+  } catch (e) {
+    state.pyErr = "Pyodide unavailable — " + ((e && e.message) || e);
+    state.testsDone = true;
     render();
-    timer = setTimeout(step, 85);
-  };
-  timer = setTimeout(step, 80);
+    return;
+  }
+  const src = state.pySrc || CONSUME_BROKEN_STATUS;
+  let pass = 0;
+  for (let i = 0; i < INDEP_TESTS_REAL.length; i++) {
+    const t = INDEP_TESTS_REAL[i];
+    let ok = false;
+    try {
+      const r = await pyRunConsume(src, t.kind);
+      ok = !!t.check(r);
+      if (i === 0) {
+        state.pyOut = r.stdout || "";
+        if (!r.ok) state.pyErr = r.error;
+      }
+    } catch (e) {
+      ok = false;
+      state.pyErr = (e && e.message) || String(e);
+    }
+    state.testStates[i] = ok ? "pass" : "fail";
+    if (ok) pass++;
+    render();
+  }
+  state.realPass = pass;
+  state.pyReal = true;
+  state.testsDone = true;
+  if (pass === INDEP_TESTS_REAL.length) setXP(65);
+  render();
+}
+
+async function runBugPython(fixed) {
+  const runner = BUG_RUNNERS[state.bugI];
+  if (!runner || runner.skipRuntime) {
+    state.bugPy = { ok: true, summary: fixed ? "Flush is a display concern — StringIO always captures; UI re-test shows the symptom fix." : "Inspect the missing flush=True. (StringIO cannot show buffering — trust the symptom panel.)", expectFail: false, fixedSummary: "print(..., flush=True) pushes each piece live." };
+    render();
+    return;
+  }
+  try {
+    await pyEnsure(() => render());
+  } catch (e) {
+    state.bugPy = { ok: false, summary: "Python unavailable: " + ((e && e.message) || e), expectFail: true };
+    render();
+    return;
+  }
+  const src = fixed ? runner.fixed : runner.broken;
+  const r = await pyRunConsume(src, runner.kind);
+  if (!fixed) {
+    let summary = r.ok
+      ? `Ran. status=${r.result && r.result.status} text=${JSON.stringify(r.result && r.result.text)} stdout=${JSON.stringify(r.stdout)}`
+      : `Crash: ${r.error}`;
+    if (runner.expectBrokenFail && r.ok) summary = "Expected a crash on None content, but code returned: " + summary;
+    if (runner.expectBrokenEmptyText && r.ok && r.result && r.result.text === "") summary = "Bug reproduced: history text is empty after double-read. stdout showed live text: " + JSON.stringify(r.stdout);
+    if (runner.expectBrokenStatus && r.ok && r.result) summary = `Bug reproduced: quiet stream labelled "${r.result.status}" (wanted partial). text kept: ${JSON.stringify(r.result.text)}`;
+    if (runner.expectBrokenNoUsage && r.ok) summary = `Bug reproduced: usage=${JSON.stringify(r.result && r.result.usage)} (early break skipped the scorecard).`;
+    state.bugPy = { ...(state.bugPy || {}), ok: r.ok, summary, expectFail: true, raw: r };
+  } else {
+    const summary = r.ok
+      ? `Fixed run OK · status=${r.result && r.result.status} · text=${JSON.stringify(r.result && r.result.text)} · usage=${JSON.stringify(r.result && r.result.usage)}`
+      : `Still failing: ${r.error}`;
+    state.bugPy = { ...(state.bugPy || {}), ok: r.ok, fixedSummary: summary, rawFixed: r };
+  }
+  render();
+}
+
+async function runMasteryChallenge() {
+  syncPyEditor("[data-testid=mastery-editor]", "masterySrc");
+  state.masteryTried = true;
+  state.masteryPy = { states: INDEP_TESTS_REAL.map(() => "pend"), pass: 0, out: "", ok: false };
+  render();
+  try {
+    await pyEnsure(() => render());
+  } catch (e) {
+    state.masteryPy = { states: INDEP_TESTS_REAL.map(() => "fail"), pass: 0, out: "Pyodide unavailable: " + ((e && e.message) || e), ok: false };
+    render();
+    return;
+  }
+  const src = state.masterySrc || CONSUME_BROKEN_STATUS;
+  let pass = 0;
+  const states = [];
+  let firstOut = "";
+  for (let i = 0; i < INDEP_TESTS_REAL.length; i++) {
+    const t = INDEP_TESTS_REAL[i];
+    let ok = false;
+    try {
+      const r = await pyRunConsume(src, t.kind);
+      ok = !!t.check(r);
+      if (i === 0) firstOut = r.ok ? (r.stdout || "(no stdout)") : (r.error || "error");
+    } catch (e) {
+      ok = false;
+      firstOut = (e && e.message) || String(e);
+    }
+    states[i] = ok ? "pass" : "fail";
+    if (ok) pass++;
+    state.masteryPy = { states: states.slice(), pass, out: firstOut, ok: pass === INDEP_TESTS_REAL.length };
+    render();
+  }
+  state.masteryCodeOk = pass === INDEP_TESTS_REAL.length;
+  if (state.masteryCodeOk) setXP(90);
+  render();
 }
 
 function onClick(e) {
@@ -755,6 +885,10 @@ function onClick(e) {
     if (ok) state.asScore = (state.asScore || 0) + 1;
     render(); return;
   }
+  if (act==="as-retry") {
+    state.asPicked = null; state.asResolved = false;
+    render(); return;
+  }
   if (act==="as-next") {
     if (state.asStep < 4) state.asStep++;
     state.asPicked = null; state.asResolved = false;
@@ -815,28 +949,34 @@ function onClick(e) {
   }
   if (act==="to-indep") { state.codeTier="indep"; render(); return; }
   if (act==="indep-cond") { clearT(); state.indepCond=t.dataset.c; state.testStates=null; state.testsDone=false; render(); return; }
-  if (act==="indep-check") { runIndepTests(); return; }
+  if (act==="indep-check") { if (PY.status==="loading") return; runIndepTests(); return; }
+  if (act==="py-load" || act==="py-retry") { pyEnsure(() => render()).catch(() => render()); render(); return; }
+  if (act==="py-reset") { state.pySrc = CONSUME_BROKEN_STATUS; state.testStates=null; state.testsDone=false; state.pyOut=""; state.pyErr=null; state.pyReal=false; state.realPass=0; render(); return; }
   if (act==="to-debug") { state.stagesDone=5; state.curStage=5; setXP(65); go("debug"); return; }
   if (act==="bug-to-find") { state.bugPhase="find"; render(); return; }
+  if (act==="bug-run") { runBugPython(false); return; }
+  if (act==="bug-run-fixed") { runBugPython(true); return; }
   if (act==="bug-fix") {
     const b=BUGS[state.bugI], f=b.fixes[+t.dataset.i];
     if (f.ok) { state.bugPhase="fixed"; state.bugsFixed=state.bugI+1; state.bugToast=null; if (state.bugI===4) setXP(80); }
     else { state.bugPhase="choose"; state.bugToast={move:f.move, resp:f.resp}; }
     render(); return;
   }
-  if (act==="bug-next") { state.bugI++; state.bugPhase="observe"; state.bugToast=null; render(); return; }
-  if (act==="to-boss") { state.stagesDone=6; state.curStage=6; setXP(80); state.bossPhase="challenge"; state.masteryChal={}; state.masteryTried=false; state.masteryHelp=false; state.hearts=3; state.shield=100; go("boss"); return; }
+  if (act==="bug-next") { state.bugI++; state.bugPhase="observe"; state.bugToast=null; state.bugPy=null; render(); return; }
+  if (act==="to-boss") { state.stagesDone=6; state.curStage=6; setXP(80); state.bossPhase="challenge"; state.masteryChal={}; state.masteryTried=false; state.masteryHelp=false; state.masterySrc=null; state.masteryPy=null; state.masteryCodeOk=false; state.masteryConceptsDone=false; state.hearts=3; state.shield=100; go("boss"); return; }
   if (act==="chal-pick") {
-    if (state.masteryTried) return;
+    if (state.masteryConceptsDone) return;
     state.masteryChal[t.dataset.id] = +t.dataset.i;
     render(); return;
   }
-  if (act==="chal-submit") {
+  if (act==="chal-run" || act==="chal-submit") { if (PY.status==="loading") return; runMasteryChallenge(); return; }
+  if (act==="chal-help") { if (!state.masteryTried) return; state.masteryHelp = true; render(); return; }
+  if (act==="chal-concepts-submit") {
     if (!MASTERY_CHALLENGE.checks.every(c => state.masteryChal[c.id] != null)) return;
-    state.masteryTried = true;
+    state.masteryConceptsDone = true;
     render(); return;
   }
-  if (act==="chal-help") { state.masteryHelp = true; render(); return; }
+  if (act==="boss-concepts") { state.bossPhase="concepts"; render(); return; }
   if (act==="boss-p1") { state.bossPhase="p2"; state.shield=70; render(); return; }
   if (act==="boss-p2") { state.bossPhase="p2"; state.shield=70; state.p2i=0; state.p2Pick=null; state.misses=0; state.missLog=[]; render(); return; }
   if (act==="boss-report") { state.bossPhase="report"; setXP(100); render(); return; }
@@ -872,5 +1012,11 @@ function onClick(e) {
 
 window.addEventListener("resize", fit);
 document.addEventListener("click", onClick);
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if (!el || !el.matches) return;
+  if (el.matches("[data-testid=py-editor]")) state.pySrc = el.value;
+  if (el.matches("[data-testid=mastery-editor]")) state.masterySrc = el.value;
+});
 document.addEventListener("DOMContentLoaded", () => { render(); });
 if (document.readyState!=="loading") render();
