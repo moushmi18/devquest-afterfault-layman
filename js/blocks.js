@@ -136,24 +136,13 @@ ${esc((mp && mp.stdout) || "Your order is on the way.")}
       : `<div class="mini" style="flex:1">Drag right to nest under a loop or if. Keyboard: Enter adds, arrows move, Delete removes. Run checks structure, then real Python on a mock stream.</div>`;
     foot = `${status}${chip(placed+" / "+DD_REQUIRED.length+" blocks","gry")}${btn("Reset","dd-reset","data-testid='dd-reset'","g sm")}${btn(PY.status==="loading"?"Loading…":ic("play",14,"#fff")+" Run real Python","dd-run","data-testid='micro-run'", PY.status==="loading"?"dis":"sm")}`;
   }
-  const guide = `<div class="learn-card" data-testid="micro-guide" style="margin-bottom:8px">
-      <i>Guided step · not an assignment dump</i>
-      <p>You already met every block in Explore. Place them in order: <b>loop → guards → extract → live print + append → finish → join</b>. Mentor explains the idea; Coach unlocks graded hints without spoiling the answer.</p>
-    </div>`;
-  const aid = typeof mentorCoachPanel === "function" ? mentorCoachPanel(
-    MICRO_AID.mentor,
-    MICRO_AID.coach,
-    state.coachLevel || 0,
-    MICRO_AID.chips
-  ) : "";
-  return `<div class="main">${codehd("Micro","Build the Line Keeper · guided")}
+  return `<div class="main">${codehd("Micro","Build the Line Keeper")}
     ${pyLoadBar()}
-    ${guide}
     <div class="mini" style="margin-bottom:4px">${realLabel("Structure check, then live consume() on a mock stream")}</div>
     <div class="dd" data-testid="dd">
       <div class="card dd-pal" data-testid="dd-palette"><div class="lbl">Blocks · drag into the editor</div><div class="dd-list">${ddPalette()}</div></div>
       <div class="card dd-ws" data-testid="dd-workspace"><div class="lbl" style="display:flex;gap:8px;align-items:center">Editor<span class="sp"></span>${chip("loop")}${chip("decision","amb")}${chip("action","gry")}</div><div class="dd-lines">${ddLines()}</div></div>
-      <div class="col dd-right">${ddPython()}${right}${aid}</div>
+      <div class="col dd-right">${ddPython()}${right}</div>
     </div>
     <div class="row dd-foot" style="align-items:center;gap:10px">${foot}</div></div>`;
 }

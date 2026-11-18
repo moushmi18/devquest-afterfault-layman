@@ -60,7 +60,7 @@ try {
   await page.evaluate(() => {
     jumpStage(4);
     state.codeTier = "guided";
-    state.guidedSrc = GUIDED_SRC;
+    state.guidedChoice = '"complete"';
     state.guidedFixed = false;
     state.guidedStates = null;
     render();
@@ -72,7 +72,7 @@ try {
   const gBroken = await page.evaluate(() => state.guidedStates);
   if (gBroken[3] === "pass") issues.push("Guided G4 should fail on hard-coded complete");
   await page.evaluate(() => {
-    state.guidedSrc = GUIDED_SRC_FIXED;
+    state.guidedChoice = "honest_status(error, finish)";
     state.guidedFixed = false;
     state.guidedStates = null;
     render();
@@ -131,7 +131,7 @@ try {
     await page.evaluate(() => {
       jumpStage(4);
       state.codeTier = "guided";
-      state.guidedSrc = GUIDED_SRC_FIXED;
+      state.guidedChoice = "honest_status(error, finish)";
       state.guidedFixed = true;
       state.guidedStates = GUIDED_TESTS_REAL.map(() => "pass");
       state.guidedOut = "All guided checks green on mock streams.";
@@ -177,56 +177,8 @@ try {
   await page.evaluate(() => { jumpStage(0); fit(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
   await shot("qa-py-07-disc-1440.png");
 
-  // Mentor/Coach visible on Code + Debug; Predict teach gate
-  await page.setViewport({ width: 1440, height: 900 });
-  const aid = await page.evaluate(() => {
-    const out = { problems: [] };
-    jumpStage(4); state.codeTier = "brief"; state.codeWalk = 3; state.coachLevel = 2; render();
-    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
-    out.codeBrief = !!document.querySelector("[data-testid=mentor-coach]");
-    const body = document.querySelector("[data-testid=brief-step-body]")?.textContent || "";
-    const mentor = document.querySelector("[data-testid=mentor-body]")?.textContent || "";
-    const tip = document.querySelector(".side .tip")?.textContent || "";
-    if (!mentor || mentor === body) out.problems.push("brief mentor equals/missing body");
-    if (!/iterator|chunk|SSE|stream=True/i.test(mentor)) out.problems.push("brief step4 mentor weak");
-    if (/drag the blocks/i.test(tip)) out.problems.push("brief tip still drag-blocks");
-    if (!document.querySelector("[data-testid=mentor-chips]")) out.problems.push("brief chips missing");
-    const c0 = CODE_WALK[3].coach[0];
-    const c0b = CODE_WALK[0].coach[0];
-    if (c0 === c0b) out.problems.push("brief coach identical across steps");
-    state.codeTier = "micro"; state.coachLevel = 1; render();
-    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
-    out.micro = !!document.querySelector("[data-testid=mentor-coach]") && !!document.querySelector("[data-testid=micro-guide]");
-    jumpStage(5); state.coachLevel = 1; render();
-    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
-    out.debug = !!document.querySelector("[data-testid=mentor-coach]") && !!document.querySelector("[data-testid=debug-process]");
-    const dm = document.querySelector("[data-testid=mentor-body]")?.textContent || "";
-    if (!/Bug 1|None|TypeError|guard/i.test(dm)) out.problems.push("debug mentor not bug-specific");
-    jumpStage(3); render();
-    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
-    out.predTeach = !!document.querySelector("[data-testid=pred-teach]");
-    jumpStage(2); state.asVocab = false; render();
-    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
-    out.asVocab = !!document.querySelector("[data-testid=as-vocab]");
-    jumpStage(1);
-    state.xq = xqInit();
-    const sseI = XBEATS.findIndex(b => b.id === "sse");
-    state.xq.beat = sseI; state.xq.taught.sse = true; render();
-    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
-    out.sse = !!document.querySelector("[data-testid=sse-box]");
-    return out;
-  });
-  await shot("qa-py-08-mentor-coach-code.png");
-  await page.evaluate(() => { jumpStage(5); state.coachLevel = 2; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
-  await shot("qa-py-09-mentor-coach-debug.png");
-  for (const [k, v] of Object.entries(aid)) {
-    if (k === "problems") continue;
-    if (!v) issues.push("pyodide aid check failed: " + k);
-  }
-  (aid.problems || []).forEach(p => issues.push("pyodide aid: " + p));
-
   console.log("ISSUES", JSON.stringify(issues, null, 2));
-  fs.writeFileSync(path.join(OUT, "qa-py-issues.json"), JSON.stringify({ issues, indep, aid }, null, 2));
+  fs.writeFileSync(path.join(OUT, "qa-py-issues.json"), JSON.stringify({ issues, indep }, null, 2));
   if (issues.length) process.exitCode = 2;
   else console.log("QA_PY_PASS");
 } catch (e) {

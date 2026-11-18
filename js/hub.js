@@ -13,7 +13,7 @@ const HUB_NODES = [
   {id:"3.2", name:"The Rush Window",     topic:"API calls in Python", icon:"bolt", x:.33, y:.58, fixed:"Timeouts and retries hold in the rush."},
   {id:"3.3", name:"The Blank Reply",     topic:"Chat completions",    icon:"chat", x:.15, y:.33, fixed:"Empty replies are caught, not shipped."},
   {id:"3.4", name:"The Forgotten Brief", topic:"Multi-turn prompts",  icon:"task", x:.42, y:.15, fixed:"The bot remembers the whole chat now."},
-  {id:"3.5", name:"The Unfinished Line", topic:"Streaming Responses",  icon:"wave", x:.64, y:.46, fixed:"Every reply finishes. Honest ticks only."},
+  {id:"3.5", name:"The Unfinished Line", topic:"Streaming over SSE",  icon:"wave", x:.64, y:.46, fixed:"Every reply finishes. Honest ticks only."},
   {id:"3.6", name:"The Offer Draft",     topic:"Parameter tuning",    icon:"doc",  x:.86, y:.20, fixed:""},
 ];
 const HUB_LINES = {

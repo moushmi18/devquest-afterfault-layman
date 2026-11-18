@@ -245,8 +245,7 @@ const GUIDED_TESTS_REAL = [
 ];
 
 function guidedSrcFromState() {
-  if (state.guidedSrc != null) return state.guidedSrc;
-  if (state.guidedFixed) return GUIDED_SRC_FIXED;
+  if (state.guidedChoice === "honest_status(error, finish)" || state.guidedFixed) return GUIDED_SRC_FIXED;
   return GUIDED_SRC;
 }
 
@@ -410,11 +409,9 @@ def consume(stream, out=sys.stdout):
   },
 ];
 
-function pyLoadBar(opts) {
-  /* Status only — Real Python badge lives once in the stage header / Run row */
-  const o = opts || {};
-  if (PY.status === "ready") return o.compact ? "" : `<div class="py-bar ready compact" data-testid="py-bar"><span class="mini">Python runtime ready</span></div>`;
+function pyLoadBar() {
+  if (PY.status === "ready") return `<div class="py-bar ready" data-testid="py-bar">${REAL_BADGE}<span class="mini">Ready</span></div>`;
   if (PY.status === "loading") return `<div class="py-bar loading" data-testid="py-bar"><span class="spinny"></span><b>Loading Python (Pyodide)…</b><span class="mini">First load may take ~10–20s</span></div>`;
   if (PY.status === "error") return `<div class="py-bar err" data-testid="py-bar"><b>Python failed to load.</b><span class="mini">${esc(PY.error || "CDN blocked or offline")}. Falling back to simulated checks.</span>${btn("Retry load","py-retry","data-testid='py-retry'","g sm")}</div>`;
-  return `<div class="py-bar idle" data-testid="py-bar">${btn("Load Python runtime","py-load","data-testid='py-load'","sm")}<span class="mini">Needed for real Run / Check</span></div>`;
+  return `<div class="py-bar idle" data-testid="py-bar">${REAL_BADGE}${btn("Load Python runtime","py-load","data-testid='py-load'","sm")}<span class="mini">Needed for real Run / Check</span></div>`;
 }
