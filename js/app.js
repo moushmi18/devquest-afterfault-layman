@@ -23,7 +23,7 @@ function initialState() {
     indepCond:"text", testStates:null, testsDone:false,
     bugI:0, bugPhase:"find", bugToast:null, bugsFixed:0,
     bossPhase:"intro", p2i:0, p2Pick:null, misses:0, missLog:[], p2Cleared:false, shakeBoss:false,
-    unlocked36:false, _xpPop:false, missionDone:false, dd:ddInit(), hub:hubInit(), dq:dqInit(), xq:xqInit(), intro:introInit(),
+    unlocked36:false, _xpPop:false, L:(typeof lxInit==="function"?lxInit():null), missionDone:false, dd:ddInit(), hub:hubInit(), dq:dqInit(), xq:xqInit(), intro:introInit(),
   };
 }
 
@@ -41,6 +41,7 @@ function setXP(n) {
 }
 
 function jumpStage(i) {
+  if (typeof LEARN_ON!=="undefined" && LEARN_ON) { lxJump(i); return; }
   clearT(); xClear(); if (state.intro) introStop();
   const keys = ["disc","explore","assign","pred","code","debug","boss"];
   state.scene = keys[i];
@@ -70,7 +71,7 @@ function topbar(hearts, pill) {
     <div class="wm">${ic("hex",30)}<span><span class="d">Dev</span><span class="q">Quest</span></span></div>
     <div class="mpill">${pill||"Afterfault · 3.5 The Unfinished Line"}</div>
     <div class="sp"></div>${h}
-    <div class="xp${state._xpPop?" pop":""}" data-testid="xp">${ic("bolt",15,"#fff")} ${state.xp}* XP <small>/ 100*</small></div>
+    <div class="xp${state._xpPop?" pop":""}" data-testid="xp">${ic("bolt",15,"#fff")} ${state.xp}${LEARN_ON?"":"*"} XP <small>/ ${LEARN_ON?LX_TOTAL_XP:"100*"}</small></div>
     <button type="button" class="tog" data-act="toggle-ai" data-testid="ai-toggle">AI Mentor <div class="sw ${state.aiOn?"":"off"}"></div></button>
     <button type="button" class="theme-tog" data-act="toggle-theme" data-testid="theme-toggle">${ic(state.dark?"sun":"moon",14)} ${state.dark?"Light":"Dark"}</button>
     <img class="meav" src="${ART}${state.avatar}-face.jpg" alt="">
@@ -572,7 +573,8 @@ function renderCliff() {
 /* ---------------- RENDER / EVENTS */
 function render() {
   const app = document.getElementById("app");
-  app.className = "screen" + (state.dark ? " dark" : "") + ((isHubScene() && hubPortrait()) ? " portrait" : "");
+  if (typeof lxTimersClear==="function") lxTimersClear();
+  app.className = "screen" + (LEARN_ON && (lxIsStage(state.scene)) ? " lx-fluid" : "") + (state.dark ? " dark" : "") + ((isHubScene() && hubPortrait()) ? " portrait" : "");
   document.body.classList.toggle("dark-page", state.dark);
   const s = state.scene;
   if (s==="map" || s==="mapEnd") renderHub();
@@ -580,6 +582,7 @@ function render() {
   else if (s==="intro") renderIntro();
   else if (s==="cut1") renderCut1();
   else if (s==="cut2") renderCut2();
+  else if (LEARN_ON && lxIsStage(s)) lxRender();
   else if (s==="disc") renderDisc();
   else if (s==="explore") renderExplore();
   else if (s==="assign") renderAssign();
@@ -608,6 +611,8 @@ function fit() {
   const vp = document.getElementById("viewport");
   const app = document.getElementById("app");
   if (!vp || !app) return;
+  document.body.classList.toggle("lx-page", app.classList.contains("lx-fluid"));
+  if (app.classList.contains("lx-fluid")) { app.style.transform = "none"; return; }
   const pt = app.classList.contains("portrait");
   const want = isHubScene() && hubPortrait();
   if (pt !== want) { render(); return; }
@@ -670,6 +675,7 @@ function onClick(e) {
   const act = t.getAttribute("data-act");
   if (act==="noop") return;
   if (act==="restart") { restart(); return; }
+  if (act.startsWith("lx-") && LEARN_ON) { lxAct(act, t); return; }
   if (act.startsWith("hub-")) { hubAct(act); return; }
   if (act.startsWith("dq-") && dqAct(act, t)) return;
   if (act.startsWith("x-") && xAct(act, t)) return;
@@ -681,7 +687,7 @@ function onClick(e) {
   if (act==="jump-stage") { jumpStage(+t.dataset.i); return; }
   if (act==="play-mission") { go("avatar"); return; }
   if (act==="pick-avatar") { state.avatar = t.dataset.k; render(); return; }
-  if (act==="enter-storm") { state.intro = introInit(); go("intro"); return; }
+  if (act==="enter-storm") { if (LEARN_ON) { state.curStage=0; go("disc"); return; } state.intro = introInit(); go("intro"); return; }
   if (act==="skip-cut" || act==="start-disc") { state.curStage=0; go("disc"); return; }
   if (act==="cut-next") { go("cut2"); return; }
   if (act==="replay-cut") { go("cut1"); return; }

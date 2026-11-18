@@ -262,7 +262,7 @@ function pass() {
   try { fixImgs(a); decorateCode(a); wrapStars(a); wrapTerms(a); mobileStrip(); } catch (e) { console.warn("layman pass", e); }
   mo.observe(a, {childList:true, subtree:true});
   const cur = SCN[state.scene] != null ? SCN[state.scene] : null;
-  if (prevStage != null && cur != null && cur === prevStage + 1 && !jumped && !root.querySelector(".lm-veil")) recap(prevStage, true);
+  if (!(typeof LEARN_ON !== "undefined" && LEARN_ON) && prevStage != null && cur != null && cur === prevStage + 1 && !jumped && !root.querySelector(".lm-veil")) recap(prevStage, true);
   if (cur != null || state.scene === "map") prevStage = cur;
   jumped = false;
   clearTimeout(saveT); saveT = setTimeout(save, 300);
@@ -288,7 +288,7 @@ function mobileStrip() {
   const a = app(), portrait = innerWidth < 760 && innerHeight > innerWidth;
   const free = portrait ? innerHeight - 36 - a.getBoundingClientRect().height : 0;
   const obj = a.querySelector(".side .obj"), tip = a.querySelector(".side .tip"), h2 = a.querySelector(".main .hd h2");
-  if (!portrait || free < 220 || !obj) { if (el) el.hidden = true; return; }
+  if (!portrait || free < 220 || !obj || document.body.classList.contains("lx-page")) { if (el) el.hidden = true; return; }
   if (!el) { el = document.createElement("div"); el.id = "lm-mob"; el.className = "card"; root.appendChild(el); }
   el.hidden = false;
   const html = `<div class="kick">${esc(a.querySelector(".main .kick") ? a.querySelector(".main .kick").textContent : "")}</div>${h2 ? `<b class="lm-pt">${esc(h2.textContent)}</b>` : ""}<p><b>Goal:</b> ${esc(obj.textContent.replace(/^OBJECTIVE/, ""))}</p>${tip ? `<p><b>Tip:</b> ${esc(tip.textContent)}</p>` : ""}<p class="lm-soft">Swipe sideways on the game to see all of it. Turning your phone sideways gives a bigger view.</p>`;
@@ -298,7 +298,7 @@ addEventListener("resize", () => requestAnimationFrame(mobileStrip));
 
 /* ---------- phones: mission screens at a readable size, swipe sideways to pan (desktop untouched) */
 const _fit = fit;
-function phoneOn() { return innerWidth <= 600 && innerHeight > innerWidth && !(typeof isHubScene === "function" && isHubScene() && hubPortrait()); }
+function phoneOn() { if (document.body.classList.contains("lx-page")) return false; return innerWidth <= 600 && innerHeight > innerWidth && !(typeof isHubScene === "function" && isHubScene() && hubPortrait()); }
 function phoneFit() {
   const a = app(), vp = document.getElementById("viewport"); if (!a || !vp) return;
   const on = phoneOn();

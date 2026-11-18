@@ -20,6 +20,9 @@ The original game files are unchanged. These helpers sit on top of them:
 
 The added files are `js/layman-data.js`, `js/layman.js`, `js/mentor.js`, `css/layman.css` and `api/mentor.mjs`, plus a few lines in `index.html`.
 
+## Mission 3.5 learning edition (branch m3-streaming-mission)
+The seven stages now teach Streaming Responses step by step with Vyapti as AI Mentor, Tanvi as AI Coach, and real in-browser Python (Pyodide) for Code, Debug and Mastery. See `docs/M3-STREAMING-PLAN.md`. The original stage screens are still at `/?classic=1`.
+
 ## Run locally
 It's a plain static site with no build step. From this folder, start any static server:
 
