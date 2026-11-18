@@ -277,40 +277,17 @@ function boot() {
   box.innerHTML = `<button type="button" class="btn sm lm-whatbtn" data-lm="welcome" title="Open the welcome guide">What is this?</button><button type="button" class="btn sm g" id="lm-helpbtn" data-lm="help">? Help</button><button type="button" class="btn sm g lm-glossbtn" data-lm="gloss">Glossary</button>`;
   bar.insertBefore(box, bar.querySelector("[data-act=restart]"));
   if (!LS.get("welcomed2", false)) welcome(0);
-  phoneFit();
+  if (typeof fit === "function") fit();
 }
 document.addEventListener("DOMContentLoaded", boot);
 addEventListener("pagehide", save);
 
-/* ---------- mobile: readable copy of objective + tip under the shrunken canvas */
+/* Legacy pan-canvas helpers removed — true fluid layout lives in css/responsive.css + app.js fit(). */
 function mobileStrip() {
-  let el = document.getElementById("lm-mob");
-  const a = app(), portrait = innerWidth < 760 && innerHeight > innerWidth;
-  const free = portrait ? innerHeight - 36 - a.getBoundingClientRect().height : 0;
-  const obj = a.querySelector(".side .obj"), tip = a.querySelector(".side .tip"), h2 = a.querySelector(".main .hd h2");
-  if (!portrait || free < 220 || !obj) { if (el) el.hidden = true; return; }
-  if (!el) { el = document.createElement("div"); el.id = "lm-mob"; el.className = "card"; root.appendChild(el); }
-  el.hidden = false;
-  const html = `<div class="kick">${esc(a.querySelector(".main .kick") ? a.querySelector(".main .kick").textContent : "")}</div>${h2 ? `<b class="lm-pt">${esc(h2.textContent)}</b>` : ""}<p><b>Goal:</b> ${esc(obj.textContent.replace(/^OBJECTIVE/, ""))}</p>${tip ? `<p><b>Tip:</b> ${esc(tip.textContent)}</p>` : ""}<p class="lm-soft">Swipe sideways on the game to see all of it. Turning your phone sideways gives a bigger view.</p>`;
-  if (el._h !== html) { el._h = html; el.innerHTML = html; }
+  const el = document.getElementById("lm-mob");
+  if (el) el.hidden = true;
 }
-addEventListener("resize", () => requestAnimationFrame(mobileStrip));
-
-/* ---------- phones: mission screens at a readable size, swipe sideways to pan (desktop untouched) */
-const _fit = fit;
-function phoneOn() { return innerWidth <= 600 && innerHeight > innerWidth && !(typeof isHubScene === "function" && isHubScene() && hubPortrait()); }
-function phoneFit() {
-  const a = app(), vp = document.getElementById("viewport"); if (!a || !vp) return;
-  const on = phoneOn();
-  document.body.classList.toggle("lm-phone", on);
-  if (!on) { if (a._ph) { a._ph = 0; a.style.left = a.style.top = a.style.transformOrigin = ""; _fit(); } return; }
-  const s = Math.max(0.45, Math.min(0.62, (innerHeight - 36) * 0.62 / 720));
-  if (!a._ph) { a._ph = 1; vp.scrollLeft = 0; }
-  a.style.transformOrigin = "0 0"; a.style.left = "0px"; a.style.top = "8px"; a.style.transform = `scale(${s})`;
-  requestAnimationFrame(mobileStrip);
-}
-fit = function () { if (phoneOn()) return phoneFit(); phoneFit(); _fit(); };
-addEventListener("resize", () => phoneFit());
+document.body.classList.remove("lm-phone");
 
 /* ---------- events */
 let hoverT = null;

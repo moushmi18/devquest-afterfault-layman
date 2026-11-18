@@ -3,10 +3,21 @@
 Live preview: https://devquest-afterfault-layman.vercel.app
 
 ## What the game is
-DevQuest Afterfault, Mission 3.5 "The Unfinished Line" is a short story game. You play a junior engineer at Dabba Dash, a made-up food delivery app. Its support chatbot keeps stopping mid-sentence while the dashboard says "All good". Across 7 stages (Discovery, Explore, Assign, Predictions, Code, Debug, Mastery) you learn how AI replies arrive piece by piece ("streaming"), and why a reply only counts as finished when it sends its finish signal.
+DevQuest Afterfault, Mission 3.5 "The Unfinished Line" is a concept-driven coding mission. You play a junior engineer at Dabba Dash, a made-up food delivery app. Its support chatbot keeps stopping mid-sentence while the dashboard says "All good". Across 7 stages (Discovery → Explore → Assign → Predict → Code → Debug → Mastery) you learn streaming responses: teach first, then experiment, apply, predict, build, debug, and prove.
+
+Pedagogy notes: `docs/AUDIT.md`, redesign: `docs/REDESIGN.md`.
+
+**Execution honesty:** Explore/Predict demos are **simulated** (labelled). Code · Micro, Guided, Independent, plus Debug runs and Mastery, use **real Python in the browser via Pyodide** against a **mock OpenAI-style stream** (no API key). Below 1100px the UI is a true fluid layout (not a scaled canvas). Pyodide loads lazily from jsDelivr; if load fails, the UI shows an error and Retry.
+
+## Educational redesign (streaming-first)
+- **Discovery** teaches what/why/how, terms, and a side-by-side comparison before any challenge.
+- **Explore** shows a Learn-first card for each control before interaction.
+- **Assign** uses four application scenarios (A–D), not Discovery repeats.
+- **Predict / Code / Debug / Mastery** use taught concepts only; Code starts with a consumer walkthrough; Debug is observe→fix→re-test; Mastery ends with a report.
+- Cinematic intro is optional (“Start learning” skips it).
 
 ## What the layman layer adds
-The original game files are unchanged. These helpers sit on top of them:
+Helpers sit on top of the mission:
 
 - **Welcome guide.** A "What is this?" card on the first visit. The purple **What is this?** button in the bottom bar reopens it.
 - **Tap-to-explain words.** Purple dotted words show a plain-English meaning. The **Glossary** has every term with an everyday comparison.
