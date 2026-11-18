@@ -219,41 +219,22 @@ const MICRO = [
 const MICRO_ANS = {1:'"usage"',2:'"content"',3:'""',4:'True',5:'append',6:'""'};
 const MICRO_BANK = ['"usage"','"tokens"','"content"','"text"','"role"','""','"\\n"','True','False','append','+=','" "','"[DONE]"'];
 
-const GUIDED_SRC = `import sys
-
-def honest_status(error, finish):
-    if error:
-        return "error"
-    if finish == "length":
-        return "truncated"
-    if finish == "stop":
-        return "complete"
-    return "partial"
-
-def consume(stream, out=sys.stdout):
-    parts, finish, usage, error = [], None, None, None
-    try:
-        for chunk in stream:
-            if not chunk.get("choices"):
-                usage = chunk.get("usage")
-                continue
-            choice = chunk["choices"][0]
-            piece = choice["delta"].get("content")
-            if piece:
-                print(piece, end="", flush=True, file=out)
-                parts.append(piece)
-            if choice.get("finish_reason"):
-                finish = choice["finish_reason"]
-    except ConnectionError as exc:
-        error = str(exc)
-    status = "complete"          # Step 4: TODO — ignore finish/error
+const GUIDED_SRC = `def consume(stream, out=sys.stdout):
+    parts, finish, usage = [], None, None
+    for chunk in stream:
+        if not chunk.get("choices"):
+            usage = chunk.get("usage")
+            continue
+        choice = chunk["choices"][0]
+        piece = choice["delta"].get("content")
+        if piece:
+            print(piece, end="", flush=True, file=out)
+            parts.append(piece)
+        if choice.get("finish_reason"):
+            finish = choice["finish_reason"]
+    status = "complete"          # Step 4: TODO
     return {"text": "".join(parts), "finish_reason": finish,
-            "usage": usage, "status": status, "error": error}`;
-
-const GUIDED_SRC_FIXED = GUIDED_SRC.replace(
-  'status = "complete"          # Step 4: TODO — ignore finish/error',
-  "status = honest_status(error, finish)"
-);
+            "usage": usage, "status": status, "error": None}`;
 
 const INDEP_SRC = (cond) => `def consume(stream, out=sys.stdout):
     parts, finish, usage, error = [], None, None, None
@@ -456,19 +437,19 @@ const TIPS = {
   e5: ["Collect while you print. The stream won't come back for a second read.","Print and collect in the same pass."],
   e6: ["Finished, and we can prove it.","Quiet isn't done. Done is `stop` or `length`."],
   r2: ["Six for six. That's 70% of the job. The other 30% is what you do when the rain comes.","All six Explore ideas are in. Continue to Assign."],
-  as0: ["Scenario A: a healthy stream ended with stop. What is honest?","Pick the behaviour that matches finish_reason stop."],
-  as1: ["Scenario B: text stopped, no finish signal. Quiet isn't done.","Mark partial, keep the text, never all-good."],
-  as2: ["Scenario C: failed before any content. One patient retry is safe.","Retry once after a pause — not a storm."],
-  as3: ["Scenario D: incomplete marked complete — the Discovery bug.","Status after the loop from finish_reason and error."],
-  asCli: ["Temperature dials are Mission 3.6. Streaming honesty is this mission.","Continue — parameter tuning comes next."],
-  asDone: ["Four scenarios, honest decisions. Next: predict risky patches.","Continue to Predictions."],
+  as0: ["Each card is one event from a live stream. Pick what your consumer does with it.","Pick a tile for the incoming event."],
+  as1: ["Text stopped, but nothing said **stop**. What's the honest label?","No finish signal means unfinished. Keep the text, don't call it complete."],
+  as2: ["Nothing was shown yet, so one retry can't duplicate text.","One retry after a pause. Not a fire hose."],
+  as3: ["Keep what arrived, label it **error**, and let the customer regenerate.","Keep the text, mark error, offer Regenerate."],
+  asCli: ["Your own bot needs a dial. Build the flag and guard its range.","Add a `--temperature` flag and reject values outside 0.0–2.0."],
+  asDone: ["That's the other 30%. Rain handled.","Three chats, three honest labels. Continue to Predictions."],
   micro: ["Drag the blocks into the editor. Nest them under the loop. You've met every one in Explore.","Drag blocks into the editor. Drag right to nest. Keyboard: Enter adds, arrows move, Delete removes."],
   microWrong: ["Close. Check the highlighted block.","Check the highlighted block."],
   microOk: ["Blocks done. Now the same thing, typed by you.","Line Keeper built. Continue to Guided."],
   guided: ["Line 14 decides \"complete\" before looking at anything. What did the stream actually tell you?","Cut stream → expected \"partial\", got \"complete\". Hint 1: What did Assign teach?"],
   guidedOk: ["Status comes after the loop, from error and finish_reason.","Step 4 is green. Continue to Independent."],
   indepFail: ["14 green, 1 red. Having text isn't the same as finishing. Which signal says done?","T3 failed: quiet stream expected partial, got complete. Change the complete condition."],
-  indepOk: ["Line Keeper forged. Every word, and the truth about every word.","All real Python checks passed on the mock stream. Continue to Debug."],
+  indepOk: ["Line Keeper forged. Every word, and the truth about every word.","All 15 tests passed. Continue to Debug."],
   p1: ["Phase one: keep every line live.","Five chats stream at once. Watch your Line Keeper work, then continue."],
   p2: ["Quiet isn't done. Label honestly, retry once with a pause, and treat `length` as truncated.","For each cut chat, pick the honest status."],
   recov: ["Let's replay one thing. Chat 4 went quiet. Quiet isn't done.","Code, Phase 1 and XP are kept. Hearts refill to 3. Back to Phase 2."],
