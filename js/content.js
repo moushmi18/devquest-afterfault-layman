@@ -219,22 +219,41 @@ const MICRO = [
 const MICRO_ANS = {1:'"usage"',2:'"content"',3:'""',4:'True',5:'append',6:'""'};
 const MICRO_BANK = ['"usage"','"tokens"','"content"','"text"','"role"','""','"\\n"','True','False','append','+=','" "','"[DONE]"'];
 
-const GUIDED_SRC = `def consume(stream, out=sys.stdout):
-    parts, finish, usage = [], None, None
-    for chunk in stream:
-        if not chunk.get("choices"):
-            usage = chunk.get("usage")
-            continue
-        choice = chunk["choices"][0]
-        piece = choice["delta"].get("content")
-        if piece:
-            print(piece, end="", flush=True, file=out)
-            parts.append(piece)
-        if choice.get("finish_reason"):
-            finish = choice["finish_reason"]
-    status = "complete"          # Step 4: TODO
+const GUIDED_SRC = `import sys
+
+def honest_status(error, finish):
+    if error:
+        return "error"
+    if finish == "length":
+        return "truncated"
+    if finish == "stop":
+        return "complete"
+    return "partial"
+
+def consume(stream, out=sys.stdout):
+    parts, finish, usage, error = [], None, None, None
+    try:
+        for chunk in stream:
+            if not chunk.get("choices"):
+                usage = chunk.get("usage")
+                continue
+            choice = chunk["choices"][0]
+            piece = choice["delta"].get("content")
+            if piece:
+                print(piece, end="", flush=True, file=out)
+                parts.append(piece)
+            if choice.get("finish_reason"):
+                finish = choice["finish_reason"]
+    except ConnectionError as exc:
+        error = str(exc)
+    status = "complete"          # Step 4: TODO — ignore finish/error
     return {"text": "".join(parts), "finish_reason": finish,
-            "usage": usage, "status": status, "error": None}`;
+            "usage": usage, "status": status, "error": error}`;
+
+const GUIDED_SRC_FIXED = GUIDED_SRC.replace(
+  'status = "complete"          # Step 4: TODO — ignore finish/error',
+  "status = honest_status(error, finish)"
+);
 
 const INDEP_SRC = (cond) => `def consume(stream, out=sys.stdout):
     parts, finish, usage, error = [], None, None, None
@@ -301,9 +320,11 @@ for chunk in stream:
         parts.append(piece)`,
     fixedMarks:{7:"del",8:"good",9:"good"},
     tipOn:"I'll watch your moves. If you reach for a quick patch that hides the problem, I'll tap your shoulder.",
-    tipOff:"Tap the crashing line, then pick a fix. Prefer a guard, not a cast.",
+    tipOff:"Tap the crashing line, then edit the code. Prefer a guard, not a cast.",
     tipFixedOn:"One guard, both problems gone: no crash, no \"None\".",
     tipFixedOff:"Bug 1 fixed. Guard once: `if piece:` then collect.",
+    accept(src){ return /\bif\s+piece\s*:/.test(src) && !/str\s*\(\s*piece\s*\)/.test(src); },
+    reject(src){ return /str\s*\(\s*piece\s*\)/.test(src) ? { move:"`text += str(piece)`", resp:"Now the log says None twice. Ila would frame that." } : null; },
   },
   {
     id:"Bug 2", title:"The frozen-looking screen",
@@ -323,9 +344,11 @@ for chunk in stream:
     parts.append(piece)`,
     fixedMarks:{2:"del",3:"good"},
     tipOn:"Flush every piece, not at the funeral.",
-    tipOff:"Remember E4. What's missing from `print`?",
+    tipOff:"Remember E4. What's missing from `print`? Edit the line, then re-run.",
     tipFixedOn:"Flush every piece, not at the funeral.",
     tipFixedOff:"Bug 2 fixed. `flush=True` pushes every piece now.",
+    accept(src){ return /flush\s*=\s*True/.test(src); },
+    reject(src){ return /sleep\s*\(/.test(src) ? { move:"added `time.sleep(0.05)`", resp:"Slower isn't more live." } : null; },
   },
   {
     id:"Bug 3", title:"The reply the bot forgot",
@@ -348,9 +371,11 @@ text = "".join((c["choices"][0]["delta"].get("content") or "")
 text = "".join(parts)`,
     fixedMarks:{3:"good",4:"del",5:"del",6:"good"},
     tipOn:"Collect in the same loop that prints.",
-    tipOff:"A stream can be read only once. Collect while you print.",
+    tipOff:"A stream can be read only once. Collect while you print — edit the code.",
     tipFixedOn:"Collect in the same loop that prints.",
     tipFixedOff:"Bug 3 fixed. One pass for print and history.",
+    accept(src){ return /parts\.append\s*\(\s*piece\s*\)/.test(src) && /["']{2}\s*\.join\s*\(\s*parts\s*\)/.test(src); },
+    reject(src){ return /list\s*\(\s*stream\s*\)/.test(src) ? { move:"`chunks = list(stream)` first", resp:"You bought the whole match report. We wanted live commentary." } : null; },
   },
   {
     id:"Bug 4", title:"The All-Good lie",
@@ -381,9 +406,11 @@ status = honest_status(error, finish)      # complete / truncated / partial / er
 return {"text": "".join(parts), "status": status}`,
     fixedMarks:{1:"del",2:"good",6:"del",7:"del",8:"good",9:"good",10:"good"},
     tipOn:"Status comes from the error and `finish_reason`. Never before the loop.",
-    tipOff:"Don't set complete before you know. Decide after the loop.",
+    tipOff:"Don't set complete before you know. Edit status after the loop, then re-run.",
     tipFixedOn:"Status comes from the error and `finish_reason`. Never before the loop.",
     tipFixedOff:"Bug 4 fixed. Honest status after the loop.",
+    accept(src){ return /honest_status\s*\(/.test(src) || (/finish\s*==\s*["']stop["']/.test(src) && /error/.test(src)); },
+    reject(src){ return /endswith\s*\(/.test(src) ? { move:"`if text.endswith(\".\")`", resp:"Punctuation isn't a protocol." } : null; },
   },
   {
     id:"Bug 5 · bonus", title:"The missing scorecard",
@@ -409,9 +436,11 @@ return {"text": "".join(parts), "status": status}`,
     # no break: let the stream end; usage comes last`,
     fixedMarks:{5:"del",6:"del",7:"good"},
     tipOn:"Usage arrives last. Don't break when you see `finish_reason`.",
-    tipOff:"Don't break early. The usage chunk comes after the finish signal.",
+    tipOff:"Don't break early. Edit out the early break, then re-run.",
     tipFixedOn:"Five for five. Ila's \"minor polish\" is history.",
     tipFixedOff:"Bug 5 fixed. Let the stream end so usage can arrive.",
+    accept(src){ return !/\bbreak\b/.test(src); },
+    reject(src){ return /len\s*\(\s*text\.split/.test(src) ? { move:"`len(text.split())` as tokens", resp:"Close enough is how budgets explode." } : null; },
   },
 ];
 
@@ -437,20 +466,20 @@ const TIPS = {
   e5: ["Collect while you print. The stream won't come back for a second read.","Print and collect in the same pass."],
   e6: ["Finished, and we can prove it.","Quiet isn't done. Done is `stop` or `length`."],
   r2: ["Six for six. That's 70% of the job. The other 30% is what you do when the rain comes.","All six Explore ideas are in. Continue to Assign."],
-  as0: ["Each card is one event from a live stream. Pick what your consumer does with it.","Pick a tile for the incoming event."],
-  as1: ["Text stopped, but nothing said **stop**. What's the honest label?","No finish signal means unfinished. Keep the text, don't call it complete."],
-  as2: ["Nothing was shown yet, so one retry can't duplicate text.","One retry after a pause. Not a fire hose."],
-  as3: ["Keep what arrived, label it **error**, and let the customer regenerate.","Keep the text, mark error, offer Regenerate."],
-  asCli: ["Your own bot needs a dial. Build the flag and guard its range.","Add a `--temperature` flag and reject values outside 0.0–2.0."],
-  asDone: ["That's the other 30%. Rain handled.","Three chats, three honest labels. Continue to Predictions."],
-  micro: ["Drag the blocks into the editor. Nest them under the loop. You've met every one in Explore.","Drag blocks into the editor. Drag right to nest. Keyboard: Enter adds, arrows move, Delete removes."],
-  microWrong: ["Close. Check the highlighted block.","Check the highlighted block."],
-  microOk: ["Blocks done. Now the same thing, typed by you.","Line Keeper built. Continue to Guided."],
-  guided: ["Line 14 decides \"complete\" before looking at anything. What did the stream actually tell you?","Cut stream → expected \"partial\", got \"complete\". Hint 1: What did Assign teach?"],
-  guidedOk: ["Status comes after the loop, from error and finish_reason.","Step 4 is green. Continue to Independent."],
-  indepFail: ["14 green, 1 red. Having text isn't the same as finishing. Which signal says done?","T3 failed: quiet stream expected partial, got complete. Change the complete condition."],
-  indepOk: ["Line Keeper forged. Every word, and the truth about every word.","All 15 tests passed. Continue to Debug."],
-  p1: ["Phase one: keep every line live.","Five chats stream at once. Watch your Line Keeper work, then continue."],
+  as0: ["Scenario A: a healthy stream ended with stop. What is honest?","Pick the behaviour that matches finish_reason stop."],
+  as1: ["Scenario B: text stopped, no finish signal. Quiet isn't done.","Mark partial, keep the text, never all-good."],
+  as2: ["Scenario C: failed before any content. One patient retry is safe.","Retry once after a pause — not a storm."],
+  as3: ["Scenario D: incomplete marked complete — the Discovery bug.","Status after the loop from finish_reason and error."],
+  asCli: ["Temperature dials are Mission 3.6. Streaming honesty is this mission.","Continue — parameter tuning comes next."],
+  asDone: ["Four scenarios, honest decisions. Next: predict risky patches.","Continue to Predictions."],
+  micro: ["Drag blocks under the loop in Explore order. Nest with a rightward drag.","Drag blocks into the editor. Drag right to nest. Keyboard: Enter adds, arrows move, Delete removes."],
+  microWrong: ["Close. Check the highlighted block against the Brief order.","Check the highlighted block."],
+  microOk: ["Blocks match a valid consumer. Next: type the honest status fix yourself.","Line Keeper structure built. Continue to Guided."],
+  guided: ["The starter always says complete. Pick the honest status expression, then Run.","Cut stream → expected partial, got complete. Use Coach hints tied to the failing check."],
+  guidedOk: ["Status now comes after the loop from error and finish_reason. Continue to Independent.","Guided checks green. Continue to Independent."],
+  indepFail: ["Read which test id failed (T1–T5). Coach maps that failure to a targeted hint.","A quiet stream expected partial. Change how you decide complete."],
+  indepOk: ["Your consume() passed live checks. Continue to Debug.","All real Python checks passed on the mock stream. Continue to Debug."],
+  p1: ["Run your consumer once before asking for help. This is the practical check.","Press Run challenge first."],
   p2: ["Quiet isn't done. Label honestly, retry once with a pause, and treat `length` as truncated.","For each cut chat, pick the honest status."],
   recov: ["Let's replay one thing. Chat 4 went quiet. Quiet isn't done.","Code, Phase 1 and XP are kept. Hearts refill to 3. Back to Phase 2."],
   p2ok: ["That's retry discipline. The storm can't feed on you.","Phase 2 cleared. Continue to Phase 3."],

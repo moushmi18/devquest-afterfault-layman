@@ -1,0 +1,307 @@
+/* True fluid layout below desktop stage (≤1099px). Desktop ≥1100 keeps scaled 1280×720 stage. */
+
+html.fluid, body.fluid {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #1a1228;
+}
+body.fluid {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+body.fluid #viewport {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: calc(100dvh - 36px);
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+body.fluid #app.screen {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  max-width: 100%;
+  height: auto !important;
+  min-height: calc(100dvh - 36px);
+  border-radius: 0;
+  box-shadow: none;
+  transform: none !important;
+  overflow-x: hidden;
+  overflow-y: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+body.fluid #app.screen.portrait {
+  width: 100% !important;
+  height: auto !important;
+  min-height: calc(100dvh - 36px);
+}
+
+/* Top bar — wrap / compact */
+body.fluid .top {
+  height: auto;
+  min-height: 52px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg);
+  border-bottom: 1px solid var(--bd);
+}
+body.fluid .mpill { font-size: 12px; padding: 6px 10px; }
+body.fluid .xp { font-size: 13px; padding: 8px 12px; min-height: 44px; }
+body.fluid .tog, body.fluid .theme-tog {
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+body.fluid .wm { font-size: 18px; }
+
+/* Stage rail — sticky horizontal chips */
+body.fluid .rail {
+  height: auto;
+  min-height: 52px;
+  padding: 8px 10px;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: sticky;
+  top: 52px;
+  z-index: 35;
+  background: var(--bg);
+  border-bottom: 1px solid var(--bd);
+  flex-wrap: nowrap;
+}
+body.fluid .st {
+  flex: 0 0 auto;
+  min-width: max-content;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+body.fluid .cn { display: none; }
+body.fluid .st .ic { width: 22px; height: 22px; }
+
+/* Body: single column */
+body.fluid .body {
+  position: relative;
+  inset: auto;
+  top: auto; left: auto; right: auto; bottom: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+}
+body.fluid .body.full { display: flex; }
+
+body.fluid .side {
+  width: 100%;
+  max-width: 100%;
+  order: -1;
+  padding: 12px;
+  gap: 8px;
+}
+body.fluid .side h3 { font-size: 17px; }
+body.fluid .side .obj { font-size: 15px; }
+body.fluid .side .tip { font-size: 15px; line-height: 1.45; }
+body.fluid .stage-pill { font-size: 12px; }
+
+body.fluid .main {
+  width: 100%;
+  max-width: 100%;
+  gap: 10px;
+  min-width: 0;
+}
+body.fluid .hd {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+body.fluid .hd h2 { font-size: 20px; line-height: 1.25; }
+body.fluid .kick { font-size: 12px; }
+
+body.fluid .row {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+body.fluid .col { min-width: 0; max-width: 100%; }
+body.fluid .f1 { flex: 1 1 auto; width: 100%; }
+
+/* Stack wide panels */
+body.fluid .main > .row {
+  flex-direction: column;
+}
+body.fluid .main .col[style*="width:"] {
+  width: 100% !important;
+}
+body.fluid .card[style*="width:"] {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+body.fluid .btn {
+  min-height: 44px;
+  font-size: 15px;
+  padding: 12px 18px;
+}
+body.fluid .btn.sm {
+  min-height: 44px;
+  font-size: 14px;
+  padding: 10px 14px;
+}
+body.fluid .opt, body.fluid .tile {
+  min-height: 44px;
+  font-size: 15px;
+}
+body.fluid .learn-card p,
+body.fluid .teach-card p,
+body.fluid .as-scenario p,
+body.fluid .mini {
+  font-size: 15px;
+  line-height: 1.45;
+}
+body.fluid .lbl { font-size: 12px; }
+
+/* Code editors: scroll inside only */
+body.fluid .py-editor {
+  min-height: 180px;
+  font-size: 13px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+body.fluid .py-editor.dominant {
+  min-height: 200px;
+}
+body.fluid .ws-grid {
+  grid-template-columns: 1fr;
+}
+body.fluid .body.ws-body {
+  grid-template-columns: 1fr;
+}
+body.fluid .main > .ws-grid {
+  flex-direction: unset;
+}
+body.fluid .code,
+body.fluid .term,
+body.fluid .py-out {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+body.fluid .code .ln > span:last-child {
+  font-size: 12.5px;
+}
+
+/* Micro block editor */
+body.fluid .dd {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+body.fluid .dd-pal, body.fluid .dd-ws, body.fluid .dd-right {
+  width: 100% !important;
+  max-height: none;
+}
+body.fluid .dd-list { display: flex; flex-wrap: wrap; gap: 6px; }
+body.fluid .ddb { min-height: 40px; }
+
+/* Explore / hub */
+body.fluid .xstage,
+body.fluid .xworld,
+body.fluid .xscene {
+  min-height: 220px;
+}
+body.fluid .hub-map {
+  min-height: 260px;
+  height: min(52vh, 420px);
+}
+
+body.fluid .tag { position: static; padding: 4px 12px 10px; }
+
+/* Sticky primary action strip when present */
+body.fluid .main > .row:last-child {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: linear-gradient(180deg, transparent, var(--bg) 28%);
+  padding-top: 10px;
+  padding-bottom: 4px;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Tablet 768–1099: optional side-by-side when wide enough */
+@media (min-width: 768px) and (max-width: 1099px) {
+  body.fluid .body {
+    display: grid;
+    grid-template-columns: minmax(200px, 240px) 1fr;
+    align-items: start;
+  }
+  body.fluid .side { order: 0; position: sticky; top: 112px; max-height: calc(100dvh - 160px); overflow: auto; }
+  body.fluid .main { order: 0; }
+  body.fluid .body.full { display: flex; flex-direction: column; }
+}
+
+/* Phone: hide bulky side chrome; keep objective + tip */
+@media (max-width: 767px) {
+  body.fluid .side .ava,
+  body.fluid .side .line { display: none; }
+  /* Code/Debug: shrink story side so the editor stays primary */
+  body.fluid .side.side-compact {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  body.fluid .side.side-compact h3 { font-size: 14px; margin: 0; }
+  body.fluid .side.side-compact .stage-pill { display: none; }
+  body.fluid .side.side-compact .vy { display: none; }
+  body.fluid .main.code-ws .py-editor.dominant {
+    min-height: 240px;
+    height: 260px;
+  }
+  body.fluid .side h3 { font-size: 16px; }
+  body.fluid .top .mpill { display: none; }
+  body.fluid .tog { font-size: 0; gap: 6px; }
+  body.fluid .tog::before { content: "AI"; font: 700 12px Poppins; }
+  body.fluid .theme-tog { font-size: 12px; }
+  body.fluid .meav { width: 32px; height: 32px; }
+  body.fluid .rail { top: 48px; }
+  body.fluid .as-grid,
+  body.fluid .learn-grid,
+  body.fluid .teach-grid,
+  body.fluid .compare {
+    grid-template-columns: 1fr !important;
+  }
+  body.fluid .phone { max-width: 100%; }
+  body.fluid .walk-step { min-height: 44px; }
+}
+
+/* Hide legacy pan strip / swipe coaching */
+#lm-mob { display: none !important; }
+body.fluid #lm-mob { display: none !important; }
+
+/* Demo bar stays usable */
+@media (max-width: 600px) {
+  #demo-bar .tagline { display: none; }
+  #demo-bar { padding: 0 8px; gap: 6px; flex-wrap: wrap; min-height: 36px; }
+  #demo-bar .lm-bar .btn,
+  #demo-bar .btn {
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+}
