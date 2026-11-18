@@ -13,8 +13,8 @@ Object.assign(ICONS, {
 });
 const W6 = ["Your ","order ","is ","on ","the ","way."];
 const XV_OPTS = { stream:["False","True"], end:['"\\n"','""'], flush:["False","True"], sep:['" "','""'], fin:["None",'"length"','"stop"'] };
-function dqInit() { return { step:0, raced:false, raceDone:false, racePick:null, pulls:0, flagged:false, suspect:null, wrong:0 }; }
-function xqInit() { return { beat:0, zoom:false, zoomAnim:false, v:{stream:"False", end:'"\\n"', flush:"False", sep:'" "', fin:"None"}, tried:{}, check:{}, basket:false, parts:[null,null,null,null,null,null], gates:{g1:null,g2:null}, lie:false, bin:false, jam:false, r1:[], r2:[], rWrong:null, done:{} }; }
+function dqInit() { return { step:0, raced:false, raceDone:false, racePick:null, pulls:0, flagged:false, suspect:null, wrong:0, checkPick:null }; }
+function xqInit() { return { beat:0, zoom:false, zoomAnim:false, v:{stream:"False", end:'"\\n"', flush:"False", sep:'" "', fin:"None"}, tried:{}, check:{}, basket:false, parts:[null,null,null,null,null,null], gates:{g1:null,g2:null}, lie:false, bin:false, jam:false, r1:[], r2:[], rWrong:null, done:{}, taught:{} }; }
 let xTimer = null;
 function xClear() { if (xTimer) { clearTimeout(xTimer); xTimer = null; } }
 
@@ -109,6 +109,34 @@ function xCheck(key, q, ops, correct, unlocked) {
 }
 
 /* ================= DISCOVERY ================= */
+function discLearn() {
+  const terms = DISC_TEACH.terms.map(([k,v]) => `<div class="term-pill"><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join("");
+  return `<div class="xstage disc learn">
+    <div class="learn-hero compact">
+      <div class="learn-kicker">${ic("wave",16,"#fff")} Streaming responses · teach first</div>
+      <h3>${esc(DISC_TEACH.title)}</h3>
+      <p>${DISC_TEACH.lead}</p>
+    </div>
+    <div class="learn-grid">
+      <div class="learn-card"><i>What</i><p>${DISC_TEACH.what}</p></div>
+      <div class="learn-card"><i>Why</i><p>${DISC_TEACH.why}</p></div>
+      <div class="learn-card"><i>How</i><p>${DISC_TEACH.how}</p></div>
+    </div>
+    <div class="row" style="gap:10px;align-items:stretch">
+      <div class="learn-card f1"><i>Side-by-side</i>
+        <div class="compare">
+          <div class="cmp"><b>Non-streaming</b><span class="mini">Wait → whole reply</span><div class="b bot dimmy">${ic("spin",14)} …then all at once</div></div>
+          <div class="cmp on"><b>Streaming</b><span class="mini">Words as they arrive</span><div class="b bot">Your order is on<span class="caret"></span></div></div>
+        </div>
+        <p class="mini" style="margin-top:6px">${esc(DISC_TEACH.real)}</p>
+      </div>
+      <div class="learn-card f1"><i>Technical · OpenAI-style</i>${simLabel("Illustrative")}
+        ${codeBlock(DISC_TEACH.tech, "stream_chat.py · idea", {}, "xs")}
+      </div>
+    </div>
+    <div class="terms-row compact">${terms}</div>
+  </div>`;
+}
 function discRace() {
   const d = state.dq;
   const anim = d.raced && !d.raceDone;
@@ -159,33 +187,64 @@ function discFreeze() {
 function discVerdict() {
   const d = state.dq, ok = d.suspect==="flag";
   const sus = [["crash","boom","Bot crashed"],["wifi","wifi","Slow internet"],["flag","flag","No finish signal"]];
-  const coach = (w, i) => `<div class="coach"><span>${w.trim()}</span><i></i><i></i></div>`;
+  const coach = (w) => `<div class="coach"><span>${w.trim()}</span><i></i><i></i></div>`;
   return `<div class="xstage disc">
-    <div class="xana">${ic("flag",16,"#fff")} Like a train that never got its guard's flag</div>
+    <div class="xana">${ic("flag",16,"#fff")} Finish signal missing — not a crash, not “slow Wi‑Fi”</div>
     <div class="train ${ok?"ok":""}">${ic("bolt",26,"#7C3AED")}<div class="engine">LLM</div>${W6.slice(0,5).map(coach).join("")}
       <div class="coach guard ${ok?"on":""}" data-testid="guard-van">${ok?`${ic("flag",18,"#fff")}<span>finish_reason</span>`:"<span>?</span>"}</div></div>
     <div class="row" style="gap:14px;justify-content:center">${sus.map(([k,icn,t])=>`<button type="button" class="suspect ${d.suspect===k?(k==="flag"?"ok":"bad shake"):""} ${ok&&k!=="flag"?"dim":""}" data-act="dq-sus" data-k="${k}" data-testid="sus-${k}">${ic(icn,34,"currentColor")}<b>${t}</b></button>`).join("")}</div>
     <div class="row" style="justify-content:center;min-height:52px;align-items:center;gap:14px">
-      ${ok ? `<div class="xreveal">${ic("check",18,"#10B981")}<b>Nothing crashed.</b> Nobody checked for the finish signal.</div><div class="xxp">+5*</div>${btn("Explore "+ic("play",14,"#fff"),"to-explore","data-testid='to-explore'")}`
-        : d.suspect ? `<div class="xprompt bad">${ic("x",16,"#EF4444")}${d.suspect==="crash"?"Server's fine. Chunks were arriving.":"Rohan's Wi-Fi is fine. Words did arrive."}</div>` : `<div class="xprompt">${ic("search",16,"#7C3AED")}Who froze the reply? Tap a suspect.</div>`}
+      ${ok ? `<div class="xreveal">${ic("check",18,"#10B981")}<b>Nothing crashed.</b> Nobody checked for the finish signal.</div>`
+        : d.suspect ? `<div class="xprompt bad">${ic("x",16,"#EF4444")}${d.suspect==="crash"?"Server's fine. Chunks were arriving.":"Rohan's Wi-Fi is fine. Words did arrive."}</div>` : `<div class="xprompt">${ic("search",16,"#7C3AED")}What was missing? Tap a suspect.</div>`}
     </div></div>`;
 }
-const DQ_STEPS = [["Race","Two bots. One question."],["Freeze","The reply that stopped"],["Verdict","What actually went wrong?"]];
+function discCheck() {
+  const d = state.dq, c = DISC_CHECK;
+  const picked = d.checkPick;
+  const ok = picked === c.correct;
+  const items = c.ops.map((o, i) => {
+    let s = "";
+    if (picked != null) s = i === c.correct ? "ok" : (i === picked ? "bad" : "dim");
+    return opt("ABC"[i], o, s, "dq-check", `data-i="${i}" data-testid="dq-check-${i}"`);
+  }).join("");
+  return `<div class="xstage disc">
+    <div class="xana">${ic("task",16,"#fff")} Quick check · only what you just learned</div>
+    <div class="learn-card" style="max-width:920px;margin:0 auto">
+      <i>Understanding check</i>
+      <b style="display:block;margin:6px 0 10px;font:700 16px Poppins;color:#301768">${esc(c.q)}</b>
+      <div class="opts one">${items}</div>
+      ${picked != null ? `<div class="fb ${ok?"ok":"bad"}" style="margin-top:10px"><span class="ico">${ic(ok?"check":"x",15,"#fff")}</span><div>${esc(ok?c.ok:c.bad)}</div></div>` : ""}
+    </div>
+    <div class="row" style="justify-content:center;min-height:52px;align-items:center;gap:14px">
+      ${ok ? `<div class="xxp">+5*</div>${btn("Continue to Explore "+ic("play",14,"#fff"),"to-explore","data-testid='to-explore'")}` : `<div class="xprompt">${ic("bulb",16,"#7C3AED")}Use the Learn + Race + Freeze ideas — no new jargon.</div>`}
+    </div></div>`;
+}
+const DQ_STEPS = [
+  ["Learn","What streaming is — and why it matters"],
+  ["See","Two bots. Same question."],
+  ["Interrupt","The reply that stopped"],
+  ["Diagnose","What actually went wrong?"],
+  ["Check","Prove you understand"],
+];
 function renderDisc() {
   const d = state.dq;
-  const body = d.step===0 ? discRace() : d.step===1 ? discFreeze() : discVerdict();
+  const body = d.step===0 ? discLearn() : d.step===1 ? discRace() : d.step===2 ? discFreeze() : d.step===3 ? discVerdict() : discCheck();
   const tips = [
+    ["Read What / Why / How first. Terms are plain English. Then we'll try it.","Read the cards, then continue."],
     ["Same question to both. Watch who talks first.","Press Send. Compare the two bots."],
     [d.pulls>=5 ? "Text stopped. Nothing said finished. Yet the wall says delivered." : "You are the stream. Pull chunks in.", d.pulls>=5 ? "The stream stopped. Flag the ops wall." : "Tap the phone to pull each chunk."],
     ["Quiet isn't done. What signal never came?","Pick the suspect: what was missing?"],
+    ["Answer using only what Discovery taught.","Pick the honest diagnosis."],
   ][d.step];
   TIPS._dq = tips;
-  const canNext = (d.step===0 && d.racePick) || (d.step===1 && d.flagged);
+  const canNext = (d.step===0) || (d.step===1 && d.racePick) || (d.step===2 && d.flagged) || (d.step===3 && d.suspect==="flag");
+  const nextLabel = d.step===0 ? "See it in action " : "Next ";
   const dots = DQ_STEPS.map((s,i)=>`<span class="${i===d.step?"c":(i<d.step?"d":"")}">${i+1} · ${s[0]}</span>`).join("");
-  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 1 · Discovery · ${d.step+1}/3</div><h2>${DQ_STEPS[d.step][1]}</h2></div><div class="sp"></div><div class="stepdots">${dots}</div></div>
+  const obj = d.step===0 ? "Understand streaming before you touch any control." : "Find out why Rohan's reply froze — using what you just learned.";
+  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 1 · Discovery · ${d.step+1}/5</div><h2>${DQ_STEPS[d.step][1]}</h2></div><div class="sp"></div><div class="stepdots">${dots}</div></div>
     ${body}
-    <div class="row" style="justify-content:flex-end;min-height:44px">${canNext?btn("Next "+ic("play",14,"#fff"),"dq-next","data-testid='dq-next'"):""}</div></div>`;
-  shell({cur:0, done:0, tag:"Discovery · "+DQ_STEPS[d.step][0]}, sidePanel("Find out why Rohan's reply froze.", "_dq", d.step===1?Math.min(d.pulls,5):null, d.step===2&&d.suspect==="flag"?"speak":"idle")+main);
+    <div class="row" style="justify-content:flex-end;min-height:44px">${canNext && d.step<4?btn(nextLabel+ic("play",14,"#fff"),"dq-next","data-testid='dq-next'"):""}</div></div>`;
+  shell({cur:0, done:0, tag:"Discovery · "+DQ_STEPS[d.step][0]}, sidePanel(obj, "_dq", d.step===2?Math.min(d.pulls,5):null, (d.step===3&&d.suspect==="flag")||(d.step===4&&d.checkPick===DISC_CHECK.correct)?"speak":"idle")+main);
 }
 function dqAct(act, t) {
   const d = state.dq;
@@ -194,24 +253,25 @@ function dqAct(act, t) {
   if (act==="dq-pull") { if (d.pulls < 5) d.pulls++; else { d.pulls = 6; } render(); if (d.pulls>=5) { const p = document.querySelector('[data-testid="dq-pull"]'); if (p && d.pulls>5) { p.classList.add("shake"); } } return true; }
   if (act==="dq-flag") { d.flagged = true; render(); return true; }
   if (act==="dq-sus") { d.suspect = t.dataset.k; if (d.suspect==="flag") setXP(5); render(); return true; }
+  if (act==="dq-check") { d.checkPick = +t.dataset.i; if (d.checkPick===DISC_CHECK.correct) setXP(5); render(); return true; }
   if (act==="dq-next") { d.step++; render(); return true; }
   return false;
 }
 
 /* ================= EXPLORE ================= */
 const XBEATS = [
-  {id:"open",   k:"story", t:"Open the line"},
-  {id:"chunks", k:"code",  t:"Split at dispatch"},
-  {id:"blank",  k:"story", t:"Across the internet"},
-  {id:"flush",  k:"code",  t:"Turn the dials"},
-  {id:"r1",     k:"recap", t:"Recap 1 · from the start"},
-  {id:"basket", k:"story", t:"Catch every word"},
-  {id:"join",   k:"code",  t:"Couple the words"},
-  {id:"cut",    k:"story", t:"Storm at the Wi-Fi"},
-  {id:"finish", k:"code",  t:"The finish flag"},
-  {id:"jam",    k:"story", t:"Jam at the app gate"},
-  {id:"guard",  k:"code",  t:"Guard the app gate"},
-  {id:"r2",     k:"recap", t:"Recap 2 · from the start"},
+  {id:"open",   k:"story", t:"stream=True"},
+  {id:"chunks", k:"code",  t:"Chunks & delta"},
+  {id:"blank",  k:"story", t:"Buffering"},
+  {id:"flush",  k:"code",  t:"end=\"\" + flush=True"},
+  {id:"r1",     k:"recap", t:"Recap · live line"},
+  {id:"basket", k:"story", t:"parts.append"},
+  {id:"join",   k:"code",  t:"\"\".join(parts)"},
+  {id:"cut",    k:"story", t:"Interrupted stream"},
+  {id:"finish", k:"code",  t:"finish_reason"},
+  {id:"jam",    k:"story", t:"Empty / usage chunks"},
+  {id:"guard",  k:"code",  t:"Guards"},
+  {id:"r2",     k:"recap", t:"Recap · whole consumer"},
 ];
 function xLive() { const v = state.xq.v; return v.stream==="True" && v.end==='""' && v.flush==="True"; }
 function goalInfo() {
@@ -410,22 +470,30 @@ function beatBody() {
 }
 function renderExplore() {
   const q = state.xq, beat = XBEATS[q.beat];
-  const { stage, check, tip, speak } = beatBody();
+  const taught = !!(q.taught && q.taught[beat.id]);
+  const teach = teachCard(beat.id);
+  const { stage, check, tip, speak } = taught ? beatBody() : { stage:"", check:"", tip:[XTEACH[beat.id]?XTEACH[beat.id].what:"Learn first.", "Read the card, then try it."], speak:"idle" };
   TIPS._xq = tip;
+  const kind = beat.k==="story"?"Lab":beat.k==="code"?"Concept lab":"Recap";
   const dots = XBEATS.map((b, i) => `<span class="xdot ${b.k} ${i===q.beat?"c":(i<q.beat?"d":"")}" title="${esc(b.t)}">${ic(b.k==="story"?"film":b.k==="code"?"code":"refresh",12,"currentColor")}</span>`).join("");
   const done = !!q.done[q.beat];
-  const next = done && beat.id!=="r2" ? btn("Next "+ic("play",14,"#fff"),"x-next","data-testid='x-next'") : "";
-  const main = `<div class="main xmain"><div class="hd"><div><div class="kick">Stage 2 · Explore · ${q.beat+1}/12 · ${beat.k==="story"?"Story":beat.k==="code"?"Inside the code":"Recap"}</div><h2>${beat.t}</h2></div><div class="sp"></div>${xMinimap()}</div>
-    ${goalBar()}
-    <div class="xbody">${stage}</div>
-    <div class="row xfoot">${check || `<div class="f1"></div>`}${next}</div></div>`;
+  const next = taught && done && beat.id!=="r2" ? btn("Next "+ic("play",14,"#fff"),"x-next","data-testid='x-next'") : "";
+  const body = taught
+    ? `${teach}<div class="xbody">${stage}</div><div class="row xfoot">${check || `<div class="f1"></div>`}${next}</div>`
+    : `<div class="xbody teach-only">${teach}</div>`;
+  const main = `<div class="main xmain"><div class="hd"><div><div class="kick">Stage 2 · Explore · ${q.beat+1}/12 · ${kind}</div><h2>${beat.t}</h2></div><div class="sp"></div>${xMinimap()}</div>
+    ${goalBar()}${simLabel("Explore demos are simulated in-browser")}
+    ${body}</div>`;
   const [n] = goalInfo();
-  shell({cur:1, done:1, tag:"Explore · "+beat.t}, sidePanel("Make Rohan's reply arrive whole.", "_xq", n===6 && goalInfo()[2]==="grn" ? [6, goalInfo()[1].includes("✓")] : n, speak)+main);
+  const obj = taught ? "Change one thing, observe what happens, then explain it." : "Read what this control does before you touch it.";
+  shell({cur:1, done:1, tag:"Explore · "+beat.t}, sidePanel(obj, "_xq", taught && n===6 && goalInfo()[2]==="grn" ? [6, goalInfo()[1].includes("✓")] : (taught?n:null), speak)+main);
   if (q.enter) { clearTimeout(q._et); q._et = setTimeout(() => { q.enter = false; }, 900); }
   if (q.zoomAnim) { clearTimeout(q._zt); q._zt = setTimeout(() => { q.zoomAnim = false; if (state.scene==="explore") render(); }, 950); }
 }
 function xAct(act, t) {
   const q = state.xq, beat = XBEATS[q.beat];
+  if (act==="x-taught") { q.taught[beat.id] = true; render(); return true; }
+  if (!q.taught[beat.id] && act!=="x-next") return true;
   if (act==="x-lever") { q.v.stream = "True"; render(); return true; }
   if (act==="x-zoom") { q.zoom = true; q.zoomAnim = true; render(); return true; }
   if (act==="x-ev") {
