@@ -27,21 +27,36 @@ function answerFor() {
     if (s === "map") return "Walk to the glowing 3.5 tower (tap the map near it) and press Enter mission.";
     if (s === "avatar") return "Pick any of the four characters, then press Enter the Retry Storm. Your choice doesn't change the path.";
     if (s === "disc") return ["Press Send to both, then tap Bot B (the live one): it felt faster because it started talking 3 seconds sooner.",
-      "Tap the phone until the words stop (5 taps), then tap the green \"Delivered ✓\" on the ops wall, because it's lying.",
+      "Tap the phone until the words stop (5 taps), then tap the green \"Delivered ✓\" on the status board, because it's lying.",
       "Pick \"No finish signal\". Nothing crashed and the Wi-Fi was fine; nobody checked for the finish signal."][state.dq.step];
     if (s === "explore") {
       const beat = XBEATS[state.xq.beat].id;
       if (xc) { const key = xc.dataset.testid.replace("xcheck-", ""), ops = xc.querySelectorAll(".opt"); if (XCORRECT[key] != null && ops[XCORRECT[key]]) return `For the check, pick "${ops[XCORRECT[key]].textContent.replace(/^[A-C]/, "").trim()}".`; }
-      return ({open:"Flip the stream lever so it reads stream=True.", chunks:"Tap the lens to zoom in, tap the stream value to try False, then set it back to True. The check answer is \"small chunks, as written\".",
-        blank:"Tap the output buffer tank in the hallway.", flush:"Zoom in, then set end to \"\" and flush to True. The check answer is \"push to the screen now\".",
+      return ({open:"Flip the stream lever so it reads stream=True.",
+        sse:"Read the SSE transcript. For the check, pick `data: [DONE]` — that ends the HTTP stream.",
+        chunks:"Tap the lens to zoom in, tap the stream value to try False, then set it back to True. The check answer is \"small chunks, as written\".",
+        blank:"Tap the output buffer tank in the hallway.",
+        endline:"Answer why end=\"\" matters: stay on one continuous line.",
+        flush:"Zoom in, then set end to \"\" and flush to True. The check answer is \"push to the screen now\".",
         r1:"Tap the moves in order: Open the stream, Stay on one line, Push it now.", basket:"Drag the parts basket onto the belt end on the desk.",
         join:"Zoom in, drag the chunks into slots 0–5 in sentence order (Your, order, is, on, the, way.), then tap the separator so it becomes \"\".",
         cut:"Tap the \"Delivered ✓\" board: it's lying, the reply isn't finished.", finish:"Zoom in and tap the finish value to try each option. For the check, pick \"partial\".",
         jam:"Tap the jammed gate (the IndexError) to see what got stuck.", guard:"Zoom in and drag the two guards into gate 1 and gate 2 (choices check first, then the piece check). The check answer is \"usage meter\".",
         r2:"Tap the seven moves in order, 1 to 7."})[beat];
     }
-    if (s === "assign") return state.asStep <= 3 ? `Pick the "${ASSIGN_EVENTS[state.asStep].correct}" tile.` : state.asStep === 4 ? "Press Add range check, then See the board." : "Press Continue to Predictions.";
-    if (s === "pred") { const p = PRED[state.predI]; return state.predPhase === "q" ? `Option ${"ABCD"[p.correct]}: "${p.ops[p.correct]}" ${p.why}` : "Press Next prediction (or Continue)."; }
+    if (s === "assign") {
+      if (state.asStep < 4 && typeof ASSIGN_SCENARIOS !== "undefined") {
+        const sc = ASSIGN_SCENARIOS[state.asStep];
+        const right = sc.ops.find(o => o.ok);
+        return `Scenario ${sc.id}: pick "${right ? right.t : "the honest option"}". ${sc.why}`;
+      }
+      return "Press Continue to Predictions.";
+    }
+    if (s === "pred") {
+      const p = PRED[state.predI];
+      if (state.predPhase === "teach") return "Read how the code path works, then press \"I understand — predict\".";
+      return state.predPhase === "q" ? `Option ${"ABCD"[p.correct]}: "${p.ops[p.correct]}" ${p.why}` : "Press Next prediction (or Continue).";
+    }
     if (s === "code") return state.codeTier === "micro" ? "Order: for chunk in stream → inside it: if not chunk.get(\"choices\") → (inside) usage = chunk.get(\"usage\") and continue → choice = chunk[\"choices\"][0] → piece = choice[\"delta\"].get(\"content\") → if piece: → (inside) print(piece, end=\"\", flush=True) and parts.append(piece) → if choice.get(\"finish_reason\"): → (inside) finish = choice[\"finish_reason\"] → back outside the loop: text = \"\".join(parts). Leave out yield, plain print and the extra finish line."
       : state.codeTier === "guided" ? "Press \"Fix status after the loop\", then Check." : "Choose complete when: finish == \"stop\", then press Run / Check.";
     if (s === "debug") { const b = BUGS[state.bugI]; return state.bugPhase === "find" ? `Tap line ${b.badLines.join(" or ")} in the code.` : state.bugPhase === "choose" ? `Pick the fix: "${b.fixes.find(f => f.ok).t.replace(/`/g, "")}".` : "Press Next bug (or Continue)."; }
@@ -58,15 +73,24 @@ const QA = [
  [/\b(hi|hello|hey|namaste)\b/, "Hello. I'm Vyapti, your mentor on this mission. Ask me about this screen, any word you don't know, or say \"I'm stuck\"."],
  [/who are you|your name|what are you/, "I'm Vyapti, the amber orb in the side panel. I coach the squad. The AI Mentor switch in the top bar changes how I give tips."],
  [/thank/, "Anytime. Remember: a reply isn't done when it stops. It's done when it says it's done."],
- [/what is this|what.*game|what.*do here|how.*play|where.*start/, "This is DevQuest, a learning game. Dabba Dash's support bot stops mid-sentence (\"Your order is on the…\") while the dashboard says \"All good\". Over 7 stages you find out why and fix it. On the map, walk to the glowing 3.5 tower and press Enter mission."],
+ [/what is this|what.*game|what.*do here|how.*play|where.*start/, "This is DevQuest, a learning game. A restaurant support bot stops mid-sentence (\"Your order is on the…\") while the dashboard says \"All good\". Over 7 stages you find out why and fix it. On the map, walk to the glowing 3.5 tower and press Enter mission."],
  [/why.*(stop|freeze|froze|cut|half)|what.*(bug|wrong|problem)/, "The reply arrives in pieces. Tonight the connection got cut halfway, so the words just stopped. That part happens. The real bug: nobody checked for the finish signal, so the board called half a sentence \"delivered\"."],
  [/all good|green tick|delivered/, "The green \"All good\" tick was a lie. It only checked whether some text arrived, not whether the reply sent its finish signal. Quiet isn't done."],
  [/why.*stream|point of stream|why not.*once/, "Streaming doesn't make the bot smarter. It just shows the reply while it's being written, so customers see words in 0.2 s instead of staring at a spinner. Like live commentary instead of tomorrow's match report."],
+ [/what is (an )?iterator|what.*iterator/, "An iterator is something you can loop with for x in … . With stream=True, create() returns an iterator of chunk dicts — each loop step is the next piece, not one final object."],
+ [/what does (a )?chunk look like|chunk look/, "A typical content chunk looks like {\"choices\":[{\"delta\":{\"content\":\"Your \"},\"finish_reason\":null}]}. Later a finish chunk sets finish_reason to \"stop\" or \"length\"."],
+ [/how does this relate to sse|relate to sse|what is sse/, "SSE is the wire format: data: {…} lines, blank separators, data: [DONE] at the end. Your SDK turns those into the chunk dicts you loop over in Python."],
+ [/what is (a )?line keeper|line keeper/, "Line Keeper is our name for consume(): show words live, keep the full string, label the reply honestly, then close the stream."],
+ [/hard-?coded complete|why is hard/, "Hard-coding status=\"complete\" is the Discovery bug — it ignores finish_reason and errors. Decide after the loop with honest_status(error, finish)."],
+ [/honest_status return|what does honest_status/, "honest_status maps: error → error; finish \"length\" → truncated; finish \"stop\" → complete; otherwise partial."],
+ [/when is (a )?retry safe|retry safe/, "Retry once after a short pause only if nothing was shown yet. If text is already on screen, mark error/partial — don't invent complete or retry forever."],
+ [/why close the stream|why.*close/, "Open streams hold sockets. Put close() in finally so it runs after success or failure — same idea as data: [DONE] ending the HTTP stream."],
+ [/guard vs str|str\(piece\)/, "str(piece) turns None into the text \"None\". A guard (if piece:) skips empties without lying to the customer."],
  [/\bthe line\b|progress bar.*side|side panel/, "\"The Line\" in the left panel is the reply you're fixing: \"Your order is on the way.\" It fills in as more of it arrives safely."],
  [/save|progress|refresh/, "Your progress saves on this device automatically. Restart in the bottom bar clears it."],
  [/lock/, "A lock means you haven't reached that stage yet. Tap it to see what it teaches, or Preview anyway if you want to peek."],
  [/phone|mobile|small/, "On a phone, turn it sideways for a bigger view. You can pinch to zoom, and the card below the game repeats the goal and my tip in bigger text."],
- [/real|actual (company|app)|dabba dash/, "Dabba Dash is made up, but the problem is real: many chat apps stream replies and must check for the finish signal."],
+ [/real|actual (company|app)|dabba dash/, "The restaurant brand is fictional, but the problem is real: many chat apps stream replies and must check for the finish signal."],
 ];
 function gloss(q) {
   const n = " " + norm(q) + " ";
@@ -126,8 +150,21 @@ async function askAI(onText) {
 }
 
 /* ---------- UI */
+function stepChips() {
+  try {
+    if (state.scene === "code" && state.codeTier === "brief" && CODE_WALK[state.codeWalk]) return CODE_WALK[state.codeWalk].chips || [];
+    if (state.scene === "code" && state.codeTier === "micro") return MICRO_AID.chips || [];
+    if (state.scene === "code" && state.codeTier === "guided") return GUIDED_AID.chips || [];
+    if (state.scene === "code" && state.codeTier === "indep") return INDEP_AID.chips || [];
+    if (state.scene === "debug" && DEBUG_AID[state.bugI]) return DEBUG_AID[state.bugI].chips || [];
+    if (state.scene === "boss" && state.bossPhase === "challenge" && state.masteryTried) return MASTERY_AID.after.chips || [];
+  } catch (e) {}
+  return [];
+}
 function chips() {
   const c = ctx();
+  const step = stepChips();
+  if (step.length) return step.map(t => `<button type="button" class="chip mc-chip" data-mc-q="${esc(t)}">${esc(t)}</button>`).join("");
   const base = c.stageIndex >= 0 ? ["What does this stage teach?", "I'm stuck, give me a hint", "Explain a word on this screen", "Why did the reply stop?"]
     : ["What is this game?", "How do I start?", "What is streaming?", "Who is Ila?"];
   return base.map(t => `<button type="button" class="chip mc-chip" data-mc-q="${esc(t)}">${esc(t)}</button>`).join("");
