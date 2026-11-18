@@ -275,24 +275,53 @@ try {
   const microOk = await page.evaluate(() => ({ solved: state.dd.solved, microPy: state.microPy, structural: state.dd.result }));
   if (!microOk.solved) issues.push("Micro real Python failed: " + JSON.stringify(microOk));
   await clickTid("to-guided");
-  // Broken status should fail G4 under real Python
+  // Broken status should fail G4 under real Python — typing editor, not chips
   await page.evaluate(() => {
-    state.guidedChoice = '"complete"';
+    state.guidedSrc = GUIDED_SRC;
     state.guidedFixed = false;
     state.guidedStates = null;
+    state.aidTab = "coach";
     render();
     document.querySelectorAll(".lm-veil").forEach(v => v.remove());
   });
+  if (!(await page.$("[data-testid=guided-editor]"))) issues.push("Guided missing typing editor");
+  if (await page.$("[data-testid=guided-set]")) issues.push("Guided still uses expression chips as primary UI");
   await clickTid("guided-check");
   await page.waitForFunction(() => state.guidedChecked && state.guidedStates && state.guidedStates.every(s => s !== "pend"), { timeout: 90000 });
   const brokenGuided = await page.evaluate(() => ({ fixed: state.guidedFixed, states: state.guidedStates }));
   if (brokenGuided.fixed) issues.push("Guided marked fixed with hard-coded complete");
   if (brokenGuided.states && brokenGuided.states[3] === "pass") issues.push("Guided G4 passed with broken status");
+  // Layout cleanup assertions on failing Guided
+  const layoutG = await page.evaluate(() => {
+    const ed = document.querySelector("[data-testid=guided-editor]");
+    const cons = document.querySelector("[data-testid=editor-console]");
+    const aid = document.querySelector("[data-testid=mentor-coach]");
+    const coaches = document.querySelectorAll("[data-testid=coach-panel]");
+    const badges = document.querySelectorAll(".main .real-badge");
+    const sideCoach = !!document.body.innerText.match(/Side coach \(mirrors panel\)/);
+    const er = ed.getBoundingClientRect(), cr = cons.getBoundingClientRect(), ar = aid.getBoundingClientRect();
+    const overlap = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+    return {
+      edH: er.height,
+      coaches: coaches.length,
+      badges: badges.length,
+      sideCoach,
+      ovEdCons: overlap(er, cr),
+      ovEdAid: overlap(er, ar),
+      ovConsAid: overlap(cr, ar),
+    };
+  });
+  if (layoutG.edH < 180) issues.push("Guided editor too short: " + layoutG.edH);
+  if (layoutG.coaches !== 1) issues.push("Expected exactly one Coach panel, got " + layoutG.coaches);
+  if (layoutG.badges !== 1) issues.push("Expected exactly one Real Python badge, got " + layoutG.badges);
+  if (layoutG.sideCoach) issues.push("Duplicate Side coach still present");
+  if (layoutG.ovEdCons || layoutG.ovEdAid || layoutG.ovConsAid) issues.push("Guided overlapping panels: " + JSON.stringify(layoutG));
   // Targeted coach after failing G4
-  await page.evaluate(() => { state.coachLevel = 1; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
+  await page.evaluate(() => { state.coachLevel = 1; state.aidTab = "coach"; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
   const guidedCoach = await page.evaluate(() => {
     const t = document.querySelector("[data-testid=coach-step-0]")?.dataset?.hint
       || document.querySelector("[data-testid=coach-step-0]")?.textContent || "";
+    document.querySelector("[data-testid=aid-tab-mentor]")?.click();
     const mentor = document.querySelector("[data-testid=mentor-body]")?.textContent || "";
     const tip = document.querySelector(".side .tip")?.textContent || "";
     return { t, mentor, tip };
@@ -302,7 +331,11 @@ try {
   if (!/honest|complete|finish|status/i.test(guidedCoach.mentor)) issues.push("Guided mentor missing status teaching");
   await shot("qa-07a-guided-fail-coach.png");
   await page.evaluate(() => {
-    [...document.querySelectorAll("[data-act=guided-set]")].find(b => b.dataset.c === "honest_status(error, finish)")?.click();
+    state.guidedSrc = GUIDED_SRC_FIXED;
+    state.guidedFixed = false;
+    state.guidedStates = null;
+    render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
   });
   await clickTid("guided-check");
   await page.waitForFunction(() => state.guidedFixed === true, { timeout: 90000 });
@@ -356,16 +389,23 @@ try {
       const ln = document.querySelector(`.debug-find .ln[data-ln="${b.badLines[0]}"]`);
       if (ln) ln.click();
     });
-    await new Promise(r => setTimeout(r, 150));
-    // try wrong fix if exists then right
+    await page.waitForFunction(() => state.bugPhase === "edit", { timeout: 5000 });
+    if (!(await page.$("[data-testid=bug-editor]"))) issues.push("Debug fix phase missing editor at bug " + i);
     await page.evaluate(() => {
       const b = BUGS[state.bugI];
-      const wrong = b.fixes.findIndex(f => !f.ok);
-      const right = b.fixes.findIndex(f => f.ok);
-      if (wrong >= 0) document.querySelector(`[data-testid=fix-${wrong}]`)?.click();
-      setTimeout(() => document.querySelector(`[data-testid=fix-${right}]`)?.click(), 50);
+      const runner = BUG_RUNNERS[state.bugI];
+      state.bugEditSrc = (runner && runner.fixed) || b.fixedSrc || state.bugEditSrc;
+      /* Ensure accept() patterns are present for snippet-only bugs */
+      if (typeof b.accept === "function" && !b.accept(state.bugEditSrc)) {
+        if (i === 1) state.bugEditSrc = 'if piece:\n    print(piece, end="", flush=True)\n    parts.append(piece)';
+        if (i === 2) state.bugEditSrc = 'for chunk in stream:\n    parts.append(piece)\ntext = "".join(parts)';
+        if (i === 4) state.bugEditSrc = "for chunk in stream:\n    if chunk.get(\"usage\"):\n        usage = chunk[\"usage\"]\n    # no break";
+      }
+      render();
+      document.querySelectorAll(".lm-veil").forEach(v => v.remove());
     });
-    await new Promise(r => setTimeout(r, 250));
+    await clickTid("bug-check-fix");
+    await page.waitForFunction(() => state.bugPhase === "fixed", { timeout: 30000 });
     if (i < 4) await clickAct("bug-next");
   }
   const bugsFixed = await page.evaluate(() => state.bugsFixed);
@@ -417,7 +457,7 @@ try {
     await page.evaluate(() => {
       jumpStage(4);
       state.codeTier = "guided";
-      state.guidedChoice = "honest_status(error, finish)";
+      state.guidedSrc = GUIDED_SRC_FIXED;
       state.guidedFixed = true;
       state.guidedStates = GUIDED_TESTS_REAL.map(() => "pass");
       render();
@@ -425,6 +465,9 @@ try {
       document.querySelectorAll(".lm-veil").forEach(v => v.remove());
     });
     await overflowCheck(`guided-${name}`);
+    const edH = await page.evaluate(() => document.querySelector("[data-testid=guided-editor]")?.getBoundingClientRect().height || 0);
+    const minH = w <= 375 ? 160 : w <= 768 ? 180 : 200;
+    if (edH < minH) issues.push(`Guided editor height ${edH} < ${minH} at ${w}`);
     const fluid = await page.evaluate(() => document.body.classList.contains("fluid"));
     if (w < 1100 && !fluid) issues.push(`expected fluid layout at ${w}`);
     if (w >= 1100 && fluid) issues.push(`expected stage layout at ${w}`);

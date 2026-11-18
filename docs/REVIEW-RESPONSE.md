@@ -133,8 +133,10 @@ New beats: **`sse`**, **`endline`** (14 beats total).
 | **Follow-up:** Ask Vyapti generic | Step chips + offline QA for iterator/chunk/SSE/honest_status/… | `mentorChips`, `mentor.js` QA |
 | **Follow-up:** Sidebar said “drag blocks” on Brief | Per-tier tips/objectives; Brief tip from `CODE_WALK[].tip` (e.g. stream=True return type) | `renderCode`, `TIPS` |
 | **Follow-up:** Jargon objective (“Forge the Line Keeper…”) | Plain-English per-tier objectives | `codeObjective()` |
-| **Follow-up:** Mentor/Coach crowded / clipped | dual-aid `align-items:start`, no max-height clip; card scrolls | `learn.css` |
+| **Follow-up:** Mentor/Coach crowded / clipped | dual-aid for Brief/Micro; Guided/Indep/Debug use tabbed `assistantPanel` | `learn.css`, `assistantPanel` |
 | **Follow-up:** QA for Mentor≠body, Coach differs, sidebar match | Assertions in qa-full + qa-pyodide | `scripts/qa-full.mjs`, `qa-pyodide.mjs` |
+| **Layout cleanup:** Editor collapsed / Coach duplicated / badges ×3 / chip-primary Guided | Editor-first `code-ws` (dominant `py-editor`); one tabbed Coach; one Real badge; Guided/Debug = typing edits; output under editor; compact story side | `renderCode`, `renderDebug`, `learn.css` |
+| **Layout QA:** editor min-height, no overlap, one Coach, one badge | Bounding-box + count asserts at 375/768/1024/1440 | `qa-full.mjs` |
 
 ---
 

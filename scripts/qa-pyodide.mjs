@@ -60,7 +60,7 @@ try {
   await page.evaluate(() => {
     jumpStage(4);
     state.codeTier = "guided";
-    state.guidedChoice = '"complete"';
+    state.guidedSrc = GUIDED_SRC;
     state.guidedFixed = false;
     state.guidedStates = null;
     render();
@@ -72,7 +72,7 @@ try {
   const gBroken = await page.evaluate(() => state.guidedStates);
   if (gBroken[3] === "pass") issues.push("Guided G4 should fail on hard-coded complete");
   await page.evaluate(() => {
-    state.guidedChoice = "honest_status(error, finish)";
+    state.guidedSrc = GUIDED_SRC_FIXED;
     state.guidedFixed = false;
     state.guidedStates = null;
     render();
@@ -131,7 +131,7 @@ try {
     await page.evaluate(() => {
       jumpStage(4);
       state.codeTier = "guided";
-      state.guidedChoice = "honest_status(error, finish)";
+      state.guidedSrc = GUIDED_SRC_FIXED;
       state.guidedFixed = true;
       state.guidedStates = GUIDED_TESTS_REAL.map(() => "pass");
       state.guidedOut = "All guided checks green on mock streams.";

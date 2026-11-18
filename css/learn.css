@@ -30,6 +30,14 @@
   background: #0B1020; color: #E5E7EB; border: 2px solid #301768; border-radius: 12px;
   padding: 10px 12px; tab-size: 4;
 }
+.py-editor.dominant {
+  min-height: 320px;
+  height: clamp(280px, 42vh, 480px);
+  resize: vertical;
+  border: none;
+  border-radius: 0 0 12px 12px;
+  flex: 1;
+}
 .py-editor:focus { outline: 2px solid #7C3AED; outline-offset: 1px; }
 .py-out {
   font: 500 12px/1.45 "JetBrains Mono", monospace; white-space: pre-wrap;
@@ -254,4 +262,101 @@
   .mr-row { grid-template-columns: 1fr; }
   .dual-aid { grid-template-columns: 1fr; }
   .vocab-row { grid-template-columns: 1fr; }
+}
+
+/* —— Code / Debug workspace: editor-first, one assistant —— */
+.body.ws-body {
+  grid-template-columns: 168px 1fr;
+  gap: 12px;
+}
+.side.side-compact {
+  padding: 10px;
+  gap: 8px;
+  overflow: auto;
+}
+.side.side-compact h3 { font-size: 14px; }
+.side.side-compact .ava img { width: 36px; height: 36px; }
+.side.side-compact .obj { font-size: 12.5px; line-height: 1.35; }
+.side.side-compact .tip { font-size: 12.5px; line-height: 1.4; }
+.main.code-ws {
+  display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0;
+}
+.main.code-ws .task-line {
+  margin: 0; font: 500 13.5px/1.4 Inter; color: #374151;
+}
+.ws-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+.ws-editor {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0;
+}
+.editor-frame {
+  display: flex; flex-direction: column; min-height: 0; flex: 1;
+  border: 2px solid #301768; border-radius: 14px; overflow: hidden; background: #0B1020;
+}
+.editor-frame .codehd {
+  flex-shrink: 0; background: #1E1538; color: #EDE7FD; border-bottom: 1px solid #3B2A6E;
+}
+.editor-frame .code {
+  flex: 1; min-height: 280px; max-height: none; overflow: auto;
+  border: none; border-radius: 0; background: #0B1020; color: #E5E7EB;
+}
+.editor-frame .code .ln { color: #E5E7EB; }
+.editor-frame .code .n { color: #9CA3AF; }
+.run-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-start;
+}
+.editor-console {
+  flex-shrink: 0;
+}
+.editor-console .term {
+  margin: 0; max-height: 110px; overflow: auto;
+}
+.assistant {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  border: 2px solid #E5E7EB; border-radius: 14px; background: #FCFCFE;
+  overflow: hidden;
+}
+.assistant-hd {
+  display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+  border-bottom: 1px solid #E5E7EB; background: #F5F3FF; flex-shrink: 0;
+}
+.aid-tabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.aid-tab {
+  font: 700 11px Poppins; color: #6B7280; background: transparent;
+  border: 1.5px solid transparent; border-radius: 8px; padding: 5px 10px; cursor: pointer;
+}
+.aid-tab.on { color: #301768; background: #fff; border-color: #C4B5FD; }
+.assistant-body {
+  padding: 10px 12px; overflow: auto; flex: 1; min-height: 0;
+  font: 500 12.5px/1.45 Inter; color: #1F2937;
+}
+.assistant-body .aid-pane.hidden { display: none; }
+.assistant.collapsed .assistant-hd { border-bottom: none; }
+.checks-card { width: 100%; gap: 6px; padding: 0; border: none; box-shadow: none; }
+.py-bar.compact { padding: 4px 10px; margin-bottom: 0; }
+.bug-side-bits .lbl { margin-top: 4px; }
+
+.screen.dark .assistant { background: #160F2C; border-color: #3B2A6E; }
+.screen.dark .assistant-hd { background: #1E1538; border-color: #3B2A6E; }
+.screen.dark .aid-tab.on { background: #2A1F4E; color: #EDE7FD; border-color: #7C3AED; }
+.screen.dark .assistant-body { color: #D1D5DB; }
+.screen.dark .main.code-ws .task-line { color: #D1D5DB; }
+
+@media (max-width: 1024px) {
+  .body.ws-body { grid-template-columns: 140px 1fr; }
+  .ws-grid { grid-template-columns: 1fr; }
+  .py-editor.dominant { min-height: 240px; height: clamp(220px, 36vh, 360px); }
+  .assistant { max-height: 340px; }
+}
+@media (max-width: 767px) {
+  .body.ws-body { grid-template-columns: 1fr; }
+  .side.side-compact .ava { display: none; }
+  .py-editor.dominant { min-height: 200px; height: 220px; }
+  .assistant { max-height: 280px; order: 2; }
 }

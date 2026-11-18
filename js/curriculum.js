@@ -387,7 +387,7 @@ const CODE_SKELETON = `def consume(stream, out=sys.stdout):
     return {"text": "".join(parts), "finish_reason": finish,
             "usage": usage, "status": status, "error": error}`;
 
-/* Dual Mentor + Coach panels for Code / Debug / Mastery */
+/* Dual Mentor + Coach — Brief/Micro (inline under content) */
 function mentorCoachPanel(mentorTip, coachLines, coachLevel, chips) {
   const lvl = coachLevel != null ? coachLevel : (state.coachLevel || 0);
   const lines = (coachLines || []).map((t, i) => {
@@ -407,6 +407,45 @@ function mentorCoachPanel(mentorTip, coachLines, coachLevel, chips) {
       <div class="aid-b" data-testid="coach-body">${lines || "<span class=\"mini\">Hints unlock as you work.</span>"}</div>
       <button type="button" class="btn g sm" data-act="coach-hint" data-testid="coach-hint">Hint</button></div>
   </div>`;
+}
+
+/* Single assistant side panel (Mentor | Coach [| Checks]) — Guided / Indep / Debug */
+function assistantPanel({ mentor, coach, chips, coachLevel, checksHtml, revealHtml }) {
+  const tab = state.aidTab || "mentor";
+  const collapsed = !!state.aidCollapsed;
+  const lvl = coachLevel != null ? coachLevel : (state.coachLevel || 0);
+  const lines = (coach || []).map((t, i) => {
+    const open = lvl > i;
+    const label = i === 0 ? "Self-check / Nudge" : i === 1 ? "Narrower" : "Near-solution";
+    return `<div class="mc-step ${open?"open":"locked"}" data-testid="coach-step-${i}" data-hint="${esc(String(t||""))}"><b>Coach ${i+1} · ${label}</b><span class="coach-txt">${open?md(t):ic("lock",12,"#9CA3AF")+" tap Hint"}</span></div>`;
+  }).join("");
+  const chipRow = (chips && chips.length)
+    ? `<div class="aid-chips" data-testid="mentor-chips">${chips.map(c => `<button type="button" class="chip mc-chip" data-mc-q="${esc(c)}" data-testid="mentor-chip">${esc(c)}</button>`).join("")}</div>`
+    : "";
+  const tabs = [
+    ["mentor", "Mentor"],
+    ["coach", "Coach"],
+    checksHtml ? ["checks", "Checks"] : null,
+  ].filter(Boolean).map(([id, label]) =>
+    `<button type="button" class="aid-tab ${tab===id?"on":""}" data-act="aid-tab" data-tab="${id}" data-testid="aid-tab-${id}">${label}</button>`
+  ).join("");
+  const mentorPane = `<div class="aid-pane ${tab==="mentor"?"":"hidden"}" data-testid="mentor-pane"><div class="mini" style="margin-bottom:6px">why · walk-through · misconception</div>
+      <div data-testid="mentor-body">${md(mentor||"").replace(/\n/g,"<br>")}</div>
+      ${chipRow}
+      <button type="button" class="btn g sm" data-mc="open" data-testid="open-mentor" style="margin-top:8px">Ask Vyapti</button></div>`;
+  const coachPane = `<div class="aid-pane ${tab==="coach"?"":"hidden"}" data-testid="coach-panel"><div class="mini" style="margin-bottom:6px">Graded hints · never the full answer</div>
+      <div data-testid="coach-body">${lines || "<span class=\"mini\">Hints unlock as you work.</span>"}</div>
+      <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${btn("Hint","coach-hint","data-testid='coach-hint'","g sm")}${revealHtml||""}</div></div>`;
+  const checksPane = checksHtml
+    ? `<div class="aid-pane ${tab==="checks"?"":"hidden"}" data-testid="checks-pane">${checksHtml}</div>`
+    : "";
+  return `<aside class="assistant ${collapsed?"collapsed":""}" data-testid="mentor-coach" data-aid-tab="${tab}">
+    <div class="assistant-hd">
+      <div class="aid-tabs" data-testid="aid-tabs">${tabs}</div>
+      <button type="button" class="btn g sm aid-toggle" data-act="aid-toggle" data-testid="aid-toggle" aria-expanded="${collapsed?"false":"true"}">${collapsed?"Show help":"Hide"}</button>
+    </div>
+    ${collapsed?"":`<div class="assistant-body">${mentorPane}${coachPane}${checksPane}</div>`}
+  </aside>`;
 }
 
 const MICRO_AID = {
@@ -445,7 +484,7 @@ const GUIDED_AID = {
     ],
   },
   chips: ["Why is hard-coded complete wrong?", "What does honest_status return?", "Which Assign scenario matches this?"],
-  tip: "The starter always says complete. Pick the honest status expression, then Run.",
+  tip: "Edit the status = line in the editor so it uses error and finish_reason. Then Run.",
 };
 
 const INDEP_AID = {
