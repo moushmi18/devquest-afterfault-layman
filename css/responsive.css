@@ -184,6 +184,18 @@ body.fluid .py-editor {
   max-width: 100%;
   overflow-x: auto;
 }
+body.fluid .py-editor.dominant {
+  min-height: 200px;
+}
+body.fluid .ws-grid {
+  grid-template-columns: 1fr;
+}
+body.fluid .body.ws-body {
+  grid-template-columns: 1fr;
+}
+body.fluid .main > .ws-grid {
+  flex-direction: unset;
+}
 body.fluid .code,
 body.fluid .term,
 body.fluid .py-out {
@@ -250,6 +262,18 @@ body.fluid .main > .row:last-child {
 @media (max-width: 767px) {
   body.fluid .side .ava,
   body.fluid .side .line { display: none; }
+  /* Code/Debug: shrink story side so the editor stays primary */
+  body.fluid .side.side-compact {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  body.fluid .side.side-compact h3 { font-size: 14px; margin: 0; }
+  body.fluid .side.side-compact .stage-pill { display: none; }
+  body.fluid .side.side-compact .vy { display: none; }
+  body.fluid .main.code-ws .py-editor.dominant {
+    min-height: 240px;
+    height: 260px;
+  }
   body.fluid .side h3 { font-size: 16px; }
   body.fluid .top .mpill { display: none; }
   body.fluid .tog { font-size: 0; gap: 6px; }
