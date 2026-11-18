@@ -56,6 +56,7 @@ function esc(s) {
 function md(s) {
   return esc(s)
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[\s(“"])\*([^*\s][^*]*?)\*(?=[\s.,;:!?)"”]|$)/g, '$1<i>$2</i>')
     .replace(/`([^`]+)`/g, '<code class="inline">$1</code>');
 }
 

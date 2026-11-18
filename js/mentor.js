@@ -13,6 +13,8 @@ const SC_STAGE = {disc:0, explore:1, assign:2, pred:3, code:4, debug:5, boss:6};
 function ctx() {
   const a = document.getElementById("app"), q = s => { const e = a.querySelector(s); return e ? e.textContent.replace(/\s+/g, " ").trim() : ""; };
   const st = SC_STAGE[state.scene];
+  const lx = (typeof LX !== "undefined" && LEARN_ON) ? LX.ctx() : null;
+  if (lx) return { scene: state.scene, stageIndex: st, where: lx.where, screen: lx.screen, kicker: "", objective: lx.objective, tip: lx.tip, learn: LM_STAGE_HINT[st], answer: lx.answer, hintsGiven: MC.hints[screenKey()] || 0, aiMentorOn: state.aiOn };
   const where = st != null ? `Stage ${st + 1} of 7 · ${STAGES[st]}` :
     ({map:"The world map (before the mission)", mapEnd:"The world map (mission finished)", avatar:"Choosing a character", intro:"The intro video", rewards:"Rewards screen (mission complete)", cliff:"Ending · teaser for mission 3.6"})[state.scene] || state.scene;
   return { scene: state.scene, stageIndex: st == null ? -1 : st, where, screen: q(".main .hd h2") || q(".hub-world h2"), kicker: q(".main .kick"),
