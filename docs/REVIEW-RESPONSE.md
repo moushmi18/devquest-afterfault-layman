@@ -128,6 +128,13 @@ New beats: **`sse`**, **`endline`** (14 beats total).
 | Micro feels like assignment | Guided banner + ordered recipe; not a dump | `ddMain` `micro-guide` |
 | AI Mentor + AI Coach missing | Visible **dual-aid** on Brief/Micro/Guided/Indep; Ask Vyapti + graded Hint | `mentorCoachPanel` |
 | UI alignment | dual-aid grid; consistent headers | `learn.css` |
+| **Follow-up:** Mentor echoed step text | Per-step authored Mentor (why / walk-through / tiny example / misconception / Explore link) ≠ body | `CODE_WALK[].mentor`, `MICRO_AID`, `GUIDED_AID`, `INDEP_AID` |
+| **Follow-up:** Coach hints generic | Brief = self-check (unlocked by default); Guided/Indep map failing assert ids (G4/T3…) to nudge→narrow→near; auto-open nudge on fail | `guidedCoachLines`, `indepCoachLines`, `runGuidedTests` |
+| **Follow-up:** Ask Vyapti generic | Step chips + offline QA for iterator/chunk/SSE/honest_status/… | `mentorChips`, `mentor.js` QA |
+| **Follow-up:** Sidebar said “drag blocks” on Brief | Per-tier tips/objectives; Brief tip from `CODE_WALK[].tip` (e.g. stream=True return type) | `renderCode`, `TIPS` |
+| **Follow-up:** Jargon objective (“Forge the Line Keeper…”) | Plain-English per-tier objectives | `codeObjective()` |
+| **Follow-up:** Mentor/Coach crowded / clipped | dual-aid `align-items:start`, no max-height clip; card scrolls | `learn.css` |
+| **Follow-up:** QA for Mentor≠body, Coach differs, sidebar match | Assertions in qa-full + qa-pyodide | `scripts/qa-full.mjs`, `qa-pyodide.mjs` |
 
 ---
 
@@ -136,8 +143,9 @@ New beats: **`sse`**, **`endline`** (14 beats total).
 | Comment | Change | Where |
 |---|---|---|
 | Too static; process not explained | **1 Reproduce → 2 Find → 3 Fix → 4 Re-test** hierarchy | `debug-process` |
-| Mentor/Coach missing | Dual-aid + DEBUG_COACH hints | `renderDebug` |
-| Hierarchy / alignment | Process chips + aid under code | `learn.css` |
+| Mentor/Coach missing | Dual-aid + **per-bug / per-phase** `DEBUG_AID` | `renderDebug` |
+| Hierarchy / alignment | Process chips + compact aid under code | `learn.css` |
+| **Follow-up:** Mentor/Coach generic | Authored content for Bugs 1–5 × observe/find/choose/fixed | `DEBUG_AID` |
 
 ---
 
@@ -148,6 +156,7 @@ New beats: **`sse`**, **`endline`** (14 beats total).
 | Core missing; MCQ-only | Primary = **independent Pyodide consumer challenge**; concepts marked optional support | `renderBoss` challenge |
 | Practical understanding / problem solving | Live Phase 2 scenarios + honest board + report | p2 / p3 / report |
 | Meaningful report | `masteryReportData` / `renderMasteryReport` | curriculum |
+| **Follow-up:** Mentor/Coach only after attempt | Locked until Run; then `MASTERY_AID.after` | `renderBoss` challenge |
 
 ---
 
@@ -159,8 +168,9 @@ New beats: **`sse`**, **`endline`** (14 beats total).
 
 ## QA
 
-- Extended `scripts/qa-full.mjs` (SSE/endline, Assign vocab, Predict teach, Mentor/Coach)  
-- Extended `scripts/qa-pyodide.mjs` (aid surfaces + SSE box)  
+- Extended `scripts/qa-full.mjs` (SSE/endline, Assign vocab, Predict teach, Mentor≠body, Coach differs per Brief step, sidebar tip match, Mentor/Coach)  
+- Extended `scripts/qa-pyodide.mjs` (aid surfaces, chips, coach differ across steps, SSE box)  
+- Follow-up review shots: `review-fu-01` Brief step 4, `review-fu-02` Guided fail+Coach, `review-fu-03` Debug, `review-fu-04` mobile 375  
 
 ## What we disagreed with or could not fully do
 

@@ -73,15 +73,24 @@ const QA = [
  [/\b(hi|hello|hey|namaste)\b/, "Hello. I'm Vyapti, your mentor on this mission. Ask me about this screen, any word you don't know, or say \"I'm stuck\"."],
  [/who are you|your name|what are you/, "I'm Vyapti, the amber orb in the side panel. I coach the squad. The AI Mentor switch in the top bar changes how I give tips."],
  [/thank/, "Anytime. Remember: a reply isn't done when it stops. It's done when it says it's done."],
- [/what is this|what.*game|what.*do here|how.*play|where.*start/, "This is DevQuest, a learning game. Dabba Dash's support bot stops mid-sentence (\"Your order is on the…\") while the dashboard says \"All good\". Over 7 stages you find out why and fix it. On the map, walk to the glowing 3.5 tower and press Enter mission."],
+ [/what is this|what.*game|what.*do here|how.*play|where.*start/, "This is DevQuest, a learning game. A restaurant support bot stops mid-sentence (\"Your order is on the…\") while the dashboard says \"All good\". Over 7 stages you find out why and fix it. On the map, walk to the glowing 3.5 tower and press Enter mission."],
  [/why.*(stop|freeze|froze|cut|half)|what.*(bug|wrong|problem)/, "The reply arrives in pieces. Tonight the connection got cut halfway, so the words just stopped. That part happens. The real bug: nobody checked for the finish signal, so the board called half a sentence \"delivered\"."],
  [/all good|green tick|delivered/, "The green \"All good\" tick was a lie. It only checked whether some text arrived, not whether the reply sent its finish signal. Quiet isn't done."],
  [/why.*stream|point of stream|why not.*once/, "Streaming doesn't make the bot smarter. It just shows the reply while it's being written, so customers see words in 0.2 s instead of staring at a spinner. Like live commentary instead of tomorrow's match report."],
+ [/what is (an )?iterator|what.*iterator/, "An iterator is something you can loop with for x in … . With stream=True, create() returns an iterator of chunk dicts — each loop step is the next piece, not one final object."],
+ [/what does (a )?chunk look like|chunk look/, "A typical content chunk looks like {\"choices\":[{\"delta\":{\"content\":\"Your \"},\"finish_reason\":null}]}. Later a finish chunk sets finish_reason to \"stop\" or \"length\"."],
+ [/how does this relate to sse|relate to sse|what is sse/, "SSE is the wire format: data: {…} lines, blank separators, data: [DONE] at the end. Your SDK turns those into the chunk dicts you loop over in Python."],
+ [/what is (a )?line keeper|line keeper/, "Line Keeper is our name for consume(): show words live, keep the full string, label the reply honestly, then close the stream."],
+ [/hard-?coded complete|why is hard/, "Hard-coding status=\"complete\" is the Discovery bug — it ignores finish_reason and errors. Decide after the loop with honest_status(error, finish)."],
+ [/honest_status return|what does honest_status/, "honest_status maps: error → error; finish \"length\" → truncated; finish \"stop\" → complete; otherwise partial."],
+ [/when is (a )?retry safe|retry safe/, "Retry once after a short pause only if nothing was shown yet. If text is already on screen, mark error/partial — don't invent complete or retry forever."],
+ [/why close the stream|why.*close/, "Open streams hold sockets. Put close() in finally so it runs after success or failure — same idea as data: [DONE] ending the HTTP stream."],
+ [/guard vs str|str\(piece\)/, "str(piece) turns None into the text \"None\". A guard (if piece:) skips empties without lying to the customer."],
  [/\bthe line\b|progress bar.*side|side panel/, "\"The Line\" in the left panel is the reply you're fixing: \"Your order is on the way.\" It fills in as more of it arrives safely."],
  [/save|progress|refresh/, "Your progress saves on this device automatically. Restart in the bottom bar clears it."],
  [/lock/, "A lock means you haven't reached that stage yet. Tap it to see what it teaches, or Preview anyway if you want to peek."],
  [/phone|mobile|small/, "On a phone, turn it sideways for a bigger view. You can pinch to zoom, and the card below the game repeats the goal and my tip in bigger text."],
- [/real|actual (company|app)|dabba dash/, "Dabba Dash is made up, but the problem is real: many chat apps stream replies and must check for the finish signal."],
+ [/real|actual (company|app)|dabba dash/, "The restaurant brand is fictional, but the problem is real: many chat apps stream replies and must check for the finish signal."],
 ];
 function gloss(q) {
   const n = " " + norm(q) + " ";
@@ -141,8 +150,21 @@ async function askAI(onText) {
 }
 
 /* ---------- UI */
+function stepChips() {
+  try {
+    if (state.scene === "code" && state.codeTier === "brief" && CODE_WALK[state.codeWalk]) return CODE_WALK[state.codeWalk].chips || [];
+    if (state.scene === "code" && state.codeTier === "micro") return MICRO_AID.chips || [];
+    if (state.scene === "code" && state.codeTier === "guided") return GUIDED_AID.chips || [];
+    if (state.scene === "code" && state.codeTier === "indep") return INDEP_AID.chips || [];
+    if (state.scene === "debug" && DEBUG_AID[state.bugI]) return DEBUG_AID[state.bugI].chips || [];
+    if (state.scene === "boss" && state.bossPhase === "challenge" && state.masteryTried) return MASTERY_AID.after.chips || [];
+  } catch (e) {}
+  return [];
+}
 function chips() {
   const c = ctx();
+  const step = stepChips();
+  if (step.length) return step.map(t => `<button type="button" class="chip mc-chip" data-mc-q="${esc(t)}">${esc(t)}</button>`).join("");
   const base = c.stageIndex >= 0 ? ["What does this stage teach?", "I'm stuck, give me a hint", "Explain a word on this screen", "Why did the reply stop?"]
     : ["What is this game?", "How do I start?", "What is streaming?", "Who is Ila?"];
   return base.map(t => `<button type="button" class="chip mc-chip" data-mc-q="${esc(t)}">${esc(t)}</button>`).join("");

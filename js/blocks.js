@@ -141,9 +141,10 @@ ${esc((mp && mp.stdout) || "Your order is on the way.")}
       <p>You already met every block in Explore. Place them in order: <b>loop → guards → extract → live print + append → finish → join</b>. Mentor explains the idea; Coach unlocks graded hints without spoiling the answer.</p>
     </div>`;
   const aid = typeof mentorCoachPanel === "function" ? mentorCoachPanel(
-    "Mentor: nest under <code class=\"inline\">for chunk in stream:</code>. Guard usage-only chunks before <code class=\"inline\">choices[0]</code>. Inside <code class=\"inline\">if piece:</code> both print(flush=True) and append.",
-    typeof MICRO_COACH !== "undefined" ? MICRO_COACH : ["Start with the for-loop.", "Guard empty choices.", "Print and append in the same pass."],
-    state.coachLevel || 0
+    MICRO_AID.mentor,
+    MICRO_AID.coach,
+    state.coachLevel || 0,
+    MICRO_AID.chips
   ) : "";
   return `<div class="main">${codehd("Micro","Build the Line Keeper · guided")}
     ${pyLoadBar()}

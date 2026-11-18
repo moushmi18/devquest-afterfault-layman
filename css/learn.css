@@ -191,26 +191,34 @@
 .vocab-row b { font: 700 12px Poppins; color: #92400E; }
 .vocab-row span { font: 500 12.5px/1.4 Inter; color: #374151; }
 
-/* Dual Mentor + Coach */
+/* Dual Mentor + Coach — side-by-side; height:auto so hints aren't clipped */
 .dual-aid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;
+  display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; margin-top: 10px;
+  align-items: stretch;
 }
 .aid {
-  border: 2px solid #E5E7EB; border-radius: 14px; background: #fff; padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+  border: 2px solid #E5E7EB; border-radius: 12px; background: #fff; padding: 10px 12px;
+  display: block; min-width: 0; height: auto; min-height: min-content;
+  box-sizing: border-box;
 }
+.aid > * { display: block; margin-bottom: 8px; }
+.aid > *:last-child { margin-bottom: 0; }
 .aid.mentor { border-color: #C4B5FD; background: #F5F3FF; }
 .aid.coach { border-color: #FDE68A; background: #FFFBEB; }
-.aid-h { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.aid-h b { font: 700 13px Poppins; color: #301768; }
-.aid-b { font: 500 12.5px/1.4 Inter; color: #1F2937; flex: 1; }
+.aid-h { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.aid-h b { font: 700 12px Poppins; color: #301768; }
+.aid-b { font: 500 12.5px/1.45 Inter; color: #1F2937; }
+.aid-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.aid-chips .chip { cursor: pointer; font-size: 11px; }
+.aid .btn { display: inline-flex; }
 .mc-step {
-  display: flex; gap: 8px; align-items: flex-start; font: 500 12px/1.35 Inter;
+  display: block; font: 500 12px/1.4 Inter;
   border: 1.5px dashed #E5E7EB; border-radius: 8px; padding: 6px 8px; margin-bottom: 4px;
 }
 .mc-step.open { border-style: solid; border-color: #F59E0B; background: #fff; }
 .mc-step.locked { opacity: .72; color: #6B7280; }
-.mc-step b { font: 700 11px Poppins; color: #B45309; white-space: nowrap; }
+.mc-step b { display: block; font: 700 10px Poppins; color: #B45309; margin-bottom: 2px; }
+.mc-step .coach-txt { display: block; }
 
 /* Debug process hierarchy */
 .debug-process {

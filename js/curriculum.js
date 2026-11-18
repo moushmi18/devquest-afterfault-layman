@@ -265,19 +265,98 @@ const PRED_TEACH = [
   { title: "How finish_reason length works", body: "finish_reason \"length\" means the model hit max_tokens. Label truncated (not complete). The text is real but cut short by the budget." },
 ];
 
-/* ---------- Code walkthrough (OpenAI-style consumer) ---------- */
+/* ---------- Code walkthrough (OpenAI-style consumer)
+   Each Brief step has authored Mentor (≠ body), Coach self-check, tip, Ask chips.
+   Mentor uses markdown **bold** and `code` (rendered via md()). */
 const CODE_WALK = [
-  { t: "What we’re building", d: "A Line Keeper: a Python function that reads a streamed chat reply, shows words live, keeps the full text, returns an honest status, and cleans up the stream." },
-  { t: "Expected behaviour", d: "Progressive rendering, stable order, full assembly with \"\".join(parts), complete only on finish_reason \"stop\", partial/truncated/error otherwise. Displayed live text should match the assembled string." },
-  { t: "Imports & client", d: "import sys (and your SDK client). Create a client once; reuse it. Keys stay in environment variables — never in source." },
-  { t: "Request with streaming", d: "client.chat.completions.create(..., stream=True) returns an iterator of chunks — not one final object. Under the hood this is often SSE parsed for you." },
-  { t: "Iterate chunks", d: "for chunk in stream:  # read once; do not loop over stream twice" },
-  { t: "Extract content", d: "piece = choice[\"delta\"].get(\"content\")  # .get avoids KeyError on role-only chunks" },
-  { t: "Skip empties", d: "if piece:  # skips None and \"\" — keeps order of real words" },
-  { t: "Render + accumulate", d: "print(piece, end=\"\", flush=True); parts.append(piece)  # live UI + history in one pass" },
-  { t: "Completion", d: "When choice.get(\"finish_reason\") is set, store it. After the loop: stop→complete, length→truncated, else partial." },
-  { t: "Errors", d: "Wrap the loop in try/except ConnectionError. If error and no text → careful retry; if text exists → status error, keep text." },
-  { t: "Close the stream", d: "When the iterator ends (or you finish early), close/cleanup so sockets and SDK resources are released — e.g. call close() if the stream object provides it, or use a context manager when the SDK supports with stream:." },
+  {
+    t: "What we’re building",
+    d: "A Line Keeper: a Python function that reads a streamed chat reply, shows words live, keeps the full text, returns an honest status, and cleans up the stream.",
+    tip: "Read what a stream consumer must do before you write a line of code.",
+    mentor: "**Why this exists:** Chat UIs feel fast only if your code can show words while they arrive — and still know when the reply is truly finished.\n**In plain words:** You are building one function that does four jobs: show live, save the full string, label honestly, then close the connection.\n**Misconception:** “Streaming” is not a smarter model. Same words; earlier first paint.\n**Explore link:** Discovery’s frozen reply is what happens when that function is missing or dishonest.",
+    coach: ["Self-check: which four jobs must one consumer do?", "Nudge: live show + save text + honest status + cleanup.", "Near: show → assemble → finish_reason/error → close()."],
+    chips: ["What is a Line Keeper?", "Why not just wait for the full reply?", "What does honest status mean?"],
+  },
+  {
+    t: "Expected behaviour",
+    d: "Progressive rendering, stable order, full assembly with \"\".join(parts), complete only on finish_reason \"stop\", partial/truncated/error otherwise. Displayed live text should match the assembled string.",
+    tip: "Picture the finished behaviour: live words, matching history string, honest labels.",
+    mentor: "**Why we pin behaviour first:** Tests and bugs only make sense against a clear contract.\n**Walk-through:** Words appear in arrival order; `\"\".join(parts)` builds the same sentence for history; status is **complete** only on `finish_reason \"stop\"`, **truncated** on `\"length\"`, **partial** if quiet/cut, **error** on connection failure.\n**Misconception:** “There is some text” ≠ complete (Assign Scenario D).\n**Explore link:** join lab’s assemble-vs-display compare.",
+    coach: ["Self-check: when is status complete?", "Nudge: only finish_reason \"stop\" — not quiet text.", "Near: stop→complete · length→truncated · else partial · error if ConnectionError."],
+    chips: ["When is status complete?", "What is truncated?", "Why must display match assembled text?"],
+  },
+  {
+    t: "Imports & client",
+    d: "import sys (and your SDK client). Create a client once; reuse it. Keys stay in environment variables — never in source.",
+    tip: "Set up the client once. Secrets stay in the environment — never in the file.",
+    mentor: "**Why:** Creating a client on every message is slow and leaks keys into git if you hard-code them.\n**What the lines do:** `import sys` lets you print to a file-like object in tests; the SDK client holds auth from `os.environ`.\n**Misconception:** Putting the API key in the .py “just for class” still ends up in screenshots and repos.\n**Explore link:** same OpenAI-style shape you saw in Discovery’s sketch.",
+    coach: ["Self-check: where should the API key live?", "Nudge: environment variable — not a string literal.", "Near: client = OpenAI() once; key from env."],
+    chips: ["Why import sys?", "Where do API keys go?", "Create client once or every call?"],
+  },
+  {
+    t: "Request with streaming",
+    d: "client.chat.completions.create(..., stream=True) returns an iterator of chunks — not one final object. Under the hood this is often SSE parsed for you.",
+    tip: "stream=True changes the return type: you get chunks one by one, not one big JSON.",
+    mentor: "**Why the line exists:** Without `stream=True` you wait for the whole reply (spinner). With it, the server pushes pieces as they are ready.\n**What it returns:** An **iterator** — something you can loop with `for chunk in stream`. Each **chunk** is a small dict, e.g. `{\"choices\":[{\"delta\":{\"content\":\"Your \"},\"finish_reason\":null}]}`.\n**Misconception:** Thinking create() still returns one final message object when streaming.\n**Explore link:** SSE beat — those `data:` lines become these chunk dicts.",
+    coach: ["Self-check: what does create(..., stream=True) return?", "Nudge: an iterator of chunk dicts — not one final reply object.", "Near: for chunk in stream: …  # not reply = create(...)[\"choices\"][0]"],
+    chips: ["What is an iterator?", "What does a chunk look like?", "How does this relate to SSE?"],
+  },
+  {
+    t: "Iterate chunks",
+    d: "for chunk in stream:  # read once; do not loop over stream twice",
+    tip: "One for-loop over the stream. A second loop sees nothing.",
+    mentor: "**Why:** A stream iterator is consumed as you read it — like a live commentary feed, not a saved file.\n**What the line does:** `for chunk in stream:` pulls the next event each time. After the loop, the iterator is empty.\n**Misconception:** Looping twice — once to print, once to join — leaves history blank (Bug 3 / Predict P4).\n**Explore link:** basket lab: catch crates in the same pass they appear.",
+    coach: ["Self-check: can you for-loop the stream twice?", "Nudge: no — second pass is empty.", "Near: print and append inside the same for chunk in stream."],
+    chips: ["Why only one pass?", "What happens on a second loop?", "Where do print and append go?"],
+  },
+  {
+    t: "Extract content",
+    d: "piece = choice[\"delta\"].get(\"content\")  # .get avoids KeyError on role-only chunks",
+    tip: "New words live under delta.content. Use .get so missing keys don’t crash.",
+    mentor: "**Why:** Early chunks often set `role` only — no `content` key yet.\n**Walk-through:** `choice = chunk[\"choices\"][0]`, then `piece = choice[\"delta\"].get(\"content\")`. `.get` returns `None` instead of raising KeyError.\n**Tiny example:** role-only → `piece is None`; content chunk → `piece == \"order \"`.\n**Misconception:** `delta[\"content\"]` always works (Predict P2).\n**Explore link:** chunks/delta lab.",
+    coach: ["Self-check: why .get(\"content\") not [\"content\"]?", "Nudge: role-only chunks have no content key.", "Near: piece = choice[\"delta\"].get(\"content\")"],
+    chips: ["What is delta?", "When is content missing?", "Why not delta[\"content\"]?"],
+  },
+  {
+    t: "Skip empties",
+    d: "if piece:  # skips None and \"\" — keeps order of real words",
+    tip: "Only print and keep real text. Skip None and empty strings.",
+    mentor: "**Why:** Printing `None` paints the word “None” or crashes when you concatenate.\n**What it does:** `if piece:` is false for `None` and `\"\"`, so those events are skipped without reordering later words.\n**Misconception:** Casting with `str(piece)` “fixes” it — it only hides the bug (Debug Bug 1).\n**Explore link:** empty / usage-only chunks and guards.",
+    coach: ["Self-check: what does if piece: skip?", "Nudge: None and \"\" — not real customer words.", "Near: if piece: print(...); parts.append(piece)"],
+    chips: ["Why skip None?", "Does skipping reorder words?", "Guard vs str(piece)?"],
+  },
+  {
+    t: "Render + accumulate",
+    d: "print(piece, end=\"\", flush=True); parts.append(piece)  # live UI + history in one pass",
+    tip: "Same pass: show the piece now and append it to parts.",
+    mentor: "**Why both lines:** The screen needs live text; chat history needs the full string later.\n**Walk-through:** `end=\"\"` keeps one line (Explore endline). `flush=True` pushes now (Explore flush). `parts.append(piece)` stores order for join.\n**Misconception:** Flush only at the end — recreates the Discovery spinner-then-dump feel.\n**Explore link:** flush + basket labs.",
+    coach: ["Self-check: why flush=True and parts.append together?", "Nudge: live UI + history — stream is one-pass.", "Near: print(piece, end=\"\", flush=True); parts.append(piece)"],
+    chips: ["What does end=\"\" do?", "What does flush=True do?", "Why append in the same loop?"],
+  },
+  {
+    t: "Completion",
+    d: "When choice.get(\"finish_reason\") is set, store it. After the loop: stop→complete, length→truncated, else partial.",
+    tip: "Store finish_reason when it appears. Decide status only after the loop ends.",
+    mentor: "**Why after the loop:** You don’t know the final reason until the stream stops sending content events.\n**Meanings:** **stop** = natural end → complete; **length** = hit token budget → truncated; **None/missing** = never finished → partial.\n**Misconception:** Setting `status=\"complete\"` before the loop (All-good lie).\n**Explore link:** finish_reason lab + Assign A/B.",
+    coach: ["Self-check: finish_reason \"length\" → which status?", "Nudge: truncated — not complete.", "Near: if finish==\"stop\": complete; elif finish==\"length\": truncated; else: partial"],
+    chips: ["What does stop mean?", "What does length mean?", "Why decide after the loop?"],
+  },
+  {
+    t: "Errors",
+    d: "Wrap the loop in try/except ConnectionError. If error and no text → careful retry; if text exists → status error, keep text.",
+    tip: "Catch connection errors. Retry once only if nothing was shown yet.",
+    mentor: "**Why:** Networks drop. Your consumer must not pretend the reply finished.\n**Walk-through:** `try/except ConnectionError` stores the error. No text yet → one retry after a pause (Assign C). Text already on screen → status **error**, keep the words (don’t invent complete).\n**Misconception:** Retry forever / retry immediately (retry storm).\n**Explore link:** interrupted stream + Assign C.",
+    coach: ["Self-check: error before any text — safe move?", "Nudge: retry once after a short pause.", "Near: except ConnectionError as e: error=str(e); then honest_status(error, finish)"],
+    chips: ["When is a retry safe?", "What is a retry storm?", "Keep text on error?"],
+  },
+  {
+    t: "Close the stream",
+    d: "When the iterator ends (or you finish early), close/cleanup so sockets and SDK resources are released — e.g. call close() if the stream object provides it, or use a context manager when the SDK supports with stream:.",
+    tip: "Always release the stream in finally — even when an error happened.",
+    mentor: "**Why:** Open streams hold sockets. Leaving them open leaks connections under load.\n**What the code does:** A `finally:` block runs after success or failure. Call `stream.close()` if it exists (or use `with stream:` when the SDK supports it).\n**Misconception:** “The for-loop ended, so we’re done” — the socket may still be open.\n**Explore link:** DONE ends the HTTP SSE stream; your code should mirror that cleanup.",
+    coach: ["Self-check: where should close() live?", "Nudge: in finally — runs on success and on error.", "Near: finally: close = getattr(stream,\"close\",None); …"],
+    chips: ["Why close the stream?", "Why use finally?", "What if close() is missing?"],
+  },
 ];
 
 const CODE_SKELETON = `def consume(stream, out=sys.stdout):
@@ -308,32 +387,228 @@ const CODE_SKELETON = `def consume(stream, out=sys.stdout):
     return {"text": "".join(parts), "finish_reason": finish,
             "usage": usage, "status": status, "error": error}`;
 
-/* Dual Mentor + Coach panels for Code / Debug */
-function mentorCoachPanel(mentorTip, coachLines, coachLevel) {
+/* Dual Mentor + Coach panels for Code / Debug / Mastery */
+function mentorCoachPanel(mentorTip, coachLines, coachLevel, chips) {
   const lvl = coachLevel != null ? coachLevel : (state.coachLevel || 0);
   const lines = (coachLines || []).map((t, i) => {
     const open = lvl > i;
-    return `<div class="mc-step ${open?"open":"locked"}" data-testid="coach-step-${i}"><b>Coach ${i+1}</b><span>${open?md(t):ic("lock",12,"#9CA3AF")+" tap Hint"}</span></div>`;
+    const label = i === 0 ? "Self-check / Nudge" : i === 1 ? "Narrower" : "Near-solution";
+    return `<div class="mc-step ${open?"open":"locked"}" data-testid="coach-step-${i}" data-hint="${esc(String(t||""))}"><b>Coach ${i+1} · ${label}</b><span class="coach-txt">${open?md(t):ic("lock",12,"#9CA3AF")+" tap Hint"}</span></div>`;
   }).join("");
+  const chipRow = (chips && chips.length)
+    ? `<div class="aid-chips" data-testid="mentor-chips">${chips.map(c => `<button type="button" class="chip mc-chip" data-mc-q="${esc(c)}" data-testid="mentor-chip">${esc(c)}</button>`).join("")}</div>`
+    : "";
   return `<div class="dual-aid" data-testid="mentor-coach">
-    <div class="aid mentor"><div class="aid-h">${ic("hex",14,"#7C3AED")}<b>AI Mentor</b><span class="mini">explains the idea / line</span></div><div class="aid-b">${md(mentorTip||"")}</div>
+    <div class="aid mentor"><div class="aid-h">${ic("hex",14,"#7C3AED")}<b>AI Mentor</b><span class="mini">why · walk-through · misconception</span></div>
+      <div class="aid-b" data-testid="mentor-body">${md(mentorTip||"").replace(/\n/g,"<br>")}</div>
+      ${chipRow}
       <button type="button" class="btn g sm" data-mc="open" data-testid="open-mentor">Ask Vyapti</button></div>
-    <div class="aid coach"><div class="aid-h">${ic("bulb",14,"#B45309")}<b>AI Coach</b><span class="mini">graded hints · no spoilers first</span></div>
-      <div class="aid-b">${lines || "<span class=\"mini\">Hints unlock as you work.</span>"}</div>
+    <div class="aid coach" data-testid="coach-panel"><div class="aid-h">${ic("bulb",14,"#B45309")}<b>AI Coach</b><span class="mini">graded hints · never the full answer</span></div>
+      <div class="aid-b" data-testid="coach-body">${lines || "<span class=\"mini\">Hints unlock as you work.</span>"}</div>
       <button type="button" class="btn g sm" data-act="coach-hint" data-testid="coach-hint">Hint</button></div>
   </div>`;
 }
 
-const MICRO_COACH = [
-  "Start with the loop: for chunk in stream: — everything else hangs off that.",
-  "Guard usage-only chunks before choices[0], or you’ll crash on empty choices.",
-  "Inside if piece: both print(..., flush=True) and parts.append(piece) — same pass.",
+const MICRO_AID = {
+  mentor: "**Why blocks:** You’ve already met each idea in Explore — now assemble them in order without typing syntax yet.\n**Walk-through:** Outer `for chunk in stream` → guard empty `choices` → read `delta.content` → `if piece` print+append → store finish → `\"\".join(parts)` after the loop.\n**Misconception:** This is not an open assignment dump — it’s a guided rebuild of the Brief skeleton.\n**Explore link:** same guards, flush, and join you placed in the labs.",
+  coach: [
+    "Nudge: start with the for-loop block — everything nests under it.",
+    "Narrower: place the usage-only guard before choices[0], or empty choices crash.",
+    "Near: inside if piece: both print(..., flush=True) and parts.append(piece) — then join outside the loop.",
+  ],
+  chips: ["Where does join go?", "What does the usage guard do?", "Why flush=True on print?"],
+  tip: "Drag blocks under the loop in Explore order. Nest with a rightward drag.",
+};
+
+const GUIDED_AID = {
+  mentor: "**Why this edit:** The starter hard-codes `status = \"complete\"` — the Discovery “All good” lie.\n**Walk-through:** After the loop, call `honest_status(error, finish)` so quiet→partial, stop→complete, length→truncated, ConnectionError→error.\n**Misconception:** “If text exists, it’s complete.” Assign D proved that wrong.\n**Explore link:** finish_reason lab + Assign scenarios.",
+  coachDefault: [
+    "Nudge: look at the status = line — it ignores finish_reason today.",
+    "Narrower: decide status after the loop from error and finish (not before).",
+    "Near: status = honest_status(error, finish)  # not \"complete\"",
+  ],
+  failHints: {
+    G4: [
+      "Nudge: G4 failed — a quiet/cut stream was labelled complete.",
+      "Narrower: hard-coded \"complete\" never checks finish_reason.",
+      "Near: replace status = \"complete\" with honest_status(error, finish).",
+    ],
+    G3: [
+      "Nudge: G3 failed — truncated (finish_reason length) wasn’t labelled truncated.",
+      "Narrower: map finish == \"length\" → status \"truncated\".",
+      "Near: honest_status should treat length separately from stop.",
+    ],
+    G5: [
+      "Nudge: G5 failed — connection error path isn’t honest.",
+      "Narrower: if error is set, status should be \"error\" (keep any text).",
+      "Near: honest_status(error, finish) checks error first.",
+    ],
+  },
+  chips: ["Why is hard-coded complete wrong?", "What does honest_status return?", "Which Assign scenario matches this?"],
+  tip: "The starter always says complete. Pick the honest status expression, then Run.",
+};
+
+const INDEP_AID = {
+  mentor: "**Why Independent:** You type the full consumer — same contract as Brief, now under real Pyodide checks.\n**Walk-through:** Iterate once; .get(\"content\"); skip empties; print+append; store finish_reason; try/except; finally close; then honest status.\n**Misconception:** Fixing only the happy path — T3/T4/T5 catch quiet, error, and length.\n**Explore link:** whole consumer recap.",
+  coachDefault: [
+    "Nudge: run once and read which assertion id failed (T1–T5).",
+    "Narrower: status must come from error + finish_reason after the loop.",
+    "Near: if error: \"error\"; elif finish==\"length\": \"truncated\"; elif finish==\"stop\": \"complete\"; else: \"partial\".",
+  ],
+  failHints: {
+    T3: [
+      "Nudge: T3 failed — quiet stream expected partial, got complete.",
+      "Narrower: when finish_reason is missing, do not return complete.",
+      "Near: else: status = \"partial\" after checking stop/length/error.",
+    ],
+    T4: [
+      "Nudge: T4 failed — connection error should yield status error.",
+      "Narrower: catch ConnectionError, set error=, then decide status.",
+      "Near: if error: status = \"error\" (keep text if any).",
+    ],
+    T5: [
+      "Nudge: T5 failed — finish_reason length must be truncated.",
+      "Narrower: branch on finish == \"length\" before treating as complete.",
+      "Near: elif finish == \"length\": status = \"truncated\".",
+    ],
+    T1: [
+      "Nudge: T1 failed — live print / assembly path broke on a happy stream.",
+      "Narrower: check end=\"\", flush=True, and \"\".join(parts) in one pass.",
+      "Near: print+append inside if piece; join after the loop.",
+    ],
+    T2: [
+      "Nudge: T2 failed — finish_reason stop should be complete with full text.",
+      "Narrower: store finish when choice.get(\"finish_reason\") is set.",
+      "Near: elif finish == \"stop\": status = \"complete\".",
+    ],
+  },
+  chips: ["Which test failed?", "Where does close() go?", "How do I map finish_reason?"],
+  tip: "Edit consume() so status follows error and finish_reason. Then Run real Python.",
+};
+
+const DEBUG_AID = [
+  {
+    mentor: {
+      observe: "**Bug 1 · None crash:** Run the broken code. You’ll see TypeError concatenating None — a role-only or empty delta reached `text += piece`.\n**Explore link:** skip-empties / guards labs.",
+      find: "**Find:** The crashing line is where None is treated as a string. Prefer `if piece:` over casting.",
+      choose: "**Fix:** Guard once — only append/concat when piece is real text. Reject `str(piece)` (hides the bug).",
+      fixed: "**Re-test:** Run again — live text should print and no TypeError.",
+    },
+    coach: {
+      observe: ["Nudge: press Run broken code and read the TypeError.", "Narrower: NoneType means piece was None on a concatenate.", "Near: the bad line does text += piece without if piece."],
+      find: ["Nudge: tap the line that concatenates piece into text.", "Narrower: look for text += piece without a guard.", "Near: badLines around the += / append without if piece."],
+      choose: ["Nudge: prefer a guard, not a cast.", "Narrower: if piece: then append/concat.", "Near: pick “Guard once: if piece: then append to parts”."],
+      fixed: ["Nudge: re-run the fixed code.", "Narrower: confirm no TypeError and words appear.", "Near: both crash and “None” on screen should be gone."],
+    },
+    chips: ["Why did None appear?", "Guard vs str(piece)?", "Which Explore lab covers this?"],
+  },
+  {
+    mentor: {
+      observe: "**Bug 2 · frozen screen:** Words arrive but the terminal holds them until the end — missing `flush=True`.\n**Explore link:** flush lab.",
+      find: "**Find:** print without flush — same as Discovery’s late dump.",
+      choose: "**Fix:** `print(piece, end=\"\", flush=True)`. Sleep is not “more live”.",
+      fixed: "**Re-test:** Words should appear immediately.",
+    },
+    coach: {
+      observe: ["Nudge: run and notice the long pause then dump.", "Narrower: buffering — not a slow model.", "Near: print is missing flush=True."],
+      find: ["Nudge: tap the print line.", "Narrower: end=\"\" alone doesn’t push the buffer.", "Near: add flush=True to print."],
+      choose: ["Nudge: remember Explore flush.", "Narrower: flush every piece, not sleep.", "Near: pick print(..., flush=True)."],
+      fixed: ["Nudge: re-run — first word should appear quickly.", "Narrower: no multi-second blank.", "Near: live caret behaviour restored."],
+    },
+    chips: ["What does flush do?", "Why is sleep wrong?", "Which Explore beat?"],
+  },
+  {
+    mentor: {
+      observe: "**Bug 3 · empty history:** Live print works, but a second pass over stream to build text sees nothing.\n**Explore link:** basket / single-pass.",
+      find: "**Find:** The second pass that re-reads `stream` after printing.",
+      choose: "**Fix:** `parts.append(piece)` in the same loop, then `\"\".join(parts)`.",
+      fixed: "**Re-test:** History should equal the live sentence.",
+    },
+    coach: {
+      observe: ["Nudge: history content is \"\" after a live print.", "Narrower: stream already consumed.", "Near: second loop/generator over stream."],
+      find: ["Nudge: find the join that re-reads stream.", "Narrower: generator expression over stream after the for-loop.", "Near: lines that iterate stream twice."],
+      choose: ["Nudge: one pass for print and history.", "Narrower: parts.append inside the print loop.", "Near: pick collect parts.append then \"\".join(parts)."],
+      fixed: ["Nudge: re-run — history should match live text.", "Narrower: no second stream iteration.", "Near: assembled == displayed."],
+    },
+    chips: ["Why is stream empty?", "Where to append?", "Predict P4 link?"],
+  },
+  {
+    mentor: {
+      observe: "**Bug 4 · All-good lie:** status is set to complete before the loop — Discovery’s green tick on half a line.\n**Assign link:** Scenario D.",
+      find: "**Find:** status = \"complete\" before you know finish_reason/error.",
+      choose: "**Fix:** Catch errors, then honest_status(error, finish) after the loop.",
+      fixed: "**Re-test:** Quiet mid-line should show partial, not Delivered ✓.",
+    },
+    coach: {
+      observe: ["Nudge: board says Delivered on a cut line.", "Narrower: status was decided too early.", "Near: status = \"complete\" before the loop."],
+      find: ["Nudge: tap the premature complete assignment.", "Narrower: also note empty except that swallows errors.", "Near: bad lines at status= and bare except."],
+      choose: ["Nudge: decide after the loop.", "Narrower: honest_status(error, finish).", "Near: reject endswith(\".\") punctuation trap."],
+      fixed: ["Nudge: re-run — expect partial on cut stream.", "Narrower: no fake Delivered.", "Near: status from finish_reason/error."],
+    },
+    chips: ["Why not complete before the loop?", "What is honest_status?", "Assign D?"],
+  },
+  {
+    mentor: {
+      observe: "**Bug 5 · missing usage:** Breaking when finish_reason appears skips the later usage-only chunk.\n**Explore link:** usage meter / guards.",
+      find: "**Find:** the break after finish_reason.",
+      choose: "**Fix:** No break — let the stream end so usage can arrive.",
+      fixed: "**Re-test:** Usage totals should populate.",
+    },
+    coach: {
+      observe: ["Nudge: usage still shows ? after a “done” reply.", "Narrower: loop stopped early.", "Near: break on finish_reason."],
+      find: ["Nudge: tap the break.", "Narrower: usage chunk comes after finish.", "Near: remove break; let iterator end."],
+      choose: ["Nudge: don’t invent token counts.", "Narrower: no break; wait for usage event.", "Near: pick “No break: let the stream end”."],
+      fixed: ["Nudge: re-run — usage numbers appear.", "Narrower: finish still recorded without break.", "Near: prompt/completion totals filled."],
+    },
+    chips: ["When does usage arrive?", "Why is break wrong?", "Explore usage lab?"],
+  },
 ];
-const DEBUG_COACH = [
-  "Reproduce first: run the broken code and read the symptom.",
-  "Find the line that causes the symptom — prefer a guard over a cast.",
-  "Re-test after the fix. A patch that only hides the error is rejected.",
-];
+
+const MASTERY_AID = {
+  before: { mentor: "", coach: [], chips: [] },
+  after: {
+    mentor: "**After your attempt:** Mastery checks the same contract as Code — live render, one-pass assembly, honest status, errors, close.\n**Walk failed asserts:** Match the red test id to Brief steps (extract, join, completion, errors).\n**Misconception:** Requesting help before running once skips the real assessment.",
+    coach: [
+      "Nudge: open the first failing assertion id and restate what it expected.",
+      "Narrower: status and join bugs are the usual failures — compare to honest_status + \"\".join(parts).",
+      "Near: mirror the Brief skeleton control flow; don’t paste a full solution from memory without understanding.",
+    ],
+    chips: ["What does this failing test mean?", "Where should I look first?", "Remind me finish_reason map"],
+  },
+};
+
+function guidedCoachLines() {
+  const states = state.guidedStates || [];
+  const failIdx = states.findIndex(s => s === "fail");
+  if (failIdx >= 0) {
+    const id = GUIDED_TESTS_REAL[failIdx] && GUIDED_TESTS_REAL[failIdx].id;
+    if (id && GUIDED_AID.failHints[id]) return GUIDED_AID.failHints[id];
+  }
+  return GUIDED_AID.coachDefault;
+}
+
+function indepCoachLines() {
+  const states = state.testStates || [];
+  const failIdx = states.findIndex(s => s === "fail");
+  if (failIdx >= 0) {
+    const id = INDEP_TESTS_REAL[failIdx] && INDEP_TESTS_REAL[failIdx].id;
+    if (id && INDEP_AID.failHints[id]) return INDEP_AID.failHints[id];
+  }
+  if (state.pyErr) {
+    return [
+      "Nudge: read the Python error text above the tests.",
+      "Narrower: KeyError/TypeError → check .get(\"content\") and if piece:.",
+      "Near: align with Brief extract + skip-empties steps.",
+    ];
+  }
+  return INDEP_AID.coachDefault;
+}
+
+function debugAidFor(phase) {
+  const aid = DEBUG_AID[state.bugI] || DEBUG_AID[0];
+  const p = phase === "observe" ? "observe" : phase === "find" ? "find" : phase === "fixed" ? "fixed" : "choose";
+  return { mentor: aid.mentor[p], coach: aid.coach[p], chips: aid.chips };
+}
 
 /* ---------- Mastery challenge + report ---------- */
 const MASTERY_CHALLENGE = {

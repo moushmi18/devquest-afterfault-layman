@@ -204,12 +204,49 @@ try {
   await page.evaluate(() => { jumpStage(4); });
   await dismiss();
   if (!(await page.$("[data-testid=mentor-coach]"))) issues.push("Code Brief missing Mentor/Coach panel");
+  // Mentor must differ from step body; Coach self-checks differ per Brief step; sidebar matches Brief
+  const briefAid = await page.evaluate(() => {
+    const problems = [];
+    const tipsSeen = new Set();
+    const coach0 = new Set();
+    for (let i = 0; i < CODE_WALK.length; i++) {
+      state.codeWalk = i;
+      state.coachLevel = 1;
+      render();
+      document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+      const body = (document.querySelector("[data-testid=brief-step-body]")?.textContent || "").trim();
+      const mentor = (document.querySelector("[data-testid=mentor-body]")?.textContent || "").trim();
+      const tip = (document.querySelector(".side .tip")?.textContent || "").trim();
+      const obj = (document.querySelector(".side .obj")?.textContent || "").trim();
+      const c0 = (document.querySelector("[data-testid=coach-step-0] .coach-txt")?.textContent || "").trim();
+      if (!mentor || !body) problems.push("missing mentor/body at step " + i);
+      else {
+        if (mentor === body) problems.push("mentor === body at " + i);
+        // Mentor must not be a trivial prefix/echo of the step body
+        const bodyCore = body.replace(/\s+/g, " ").slice(0, 60);
+        if (bodyCore.length > 20 && mentor.replace(/\s+/g, " ").includes(bodyCore)) problems.push("mentor contains step body verbatim at " + i);
+        if (!/why|misconception|walk|plain|explore|example/i.test(mentor)) problems.push("mentor lacks teaching markers at " + i);
+      }
+      if (/drag the blocks|nest them under the loop/i.test(tip)) problems.push("Brief tip still talks about dragging blocks at " + i);
+      if (/forge the line keeper/i.test(obj)) problems.push("jargon objective on Brief");
+      if (tip) tipsSeen.add(tip);
+      if (c0) coach0.add(c0);
+      if (!document.querySelector("[data-testid=mentor-chips]")) problems.push("missing mentor chips at " + i);
+    }
+    if (coach0.size < Math.min(5, CODE_WALK.length)) problems.push("coach hints not unique enough: " + coach0.size);
+    return { problems, tipCount: tipsSeen.size, coachUnique: coach0.size };
+  });
+  briefAid.problems.forEach(p => issues.push("Brief aid: " + p));
+  await page.evaluate(() => { state.codeWalk = 3; state.coachLevel = 2; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
   await shot("qa-07-code-brief.png");
   // walk last step
-  await page.evaluate(() => { state.codeWalk = CODE_WALK.length - 1; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
+  await page.evaluate(() => { state.codeWalk = CODE_WALK.length - 1; state.coachLevel = 0; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
   await clickTid("to-micro");
   if (!(await page.$("[data-testid=mentor-coach]"))) issues.push("Code Micro missing Mentor/Coach panel");
   if (!(await page.$("[data-testid=micro-guide]"))) issues.push("Code Micro missing guided learning banner");
+  const microTip = await page.evaluate(() => (document.querySelector(".side .tip")?.textContent || ""));
+  if (/brief step|request with streaming/i.test(microTip)) issues.push("Micro sidebar tip mismatched");
+  if (!/drag|block|nest|loop/i.test(microTip)) issues.push("Micro tip should mention blocks/loop");
   // auto-solve micro for progression test
   await page.evaluate(() => {
     state.dd.lines = [
@@ -251,6 +288,19 @@ try {
   const brokenGuided = await page.evaluate(() => ({ fixed: state.guidedFixed, states: state.guidedStates }));
   if (brokenGuided.fixed) issues.push("Guided marked fixed with hard-coded complete");
   if (brokenGuided.states && brokenGuided.states[3] === "pass") issues.push("Guided G4 passed with broken status");
+  // Targeted coach after failing G4
+  await page.evaluate(() => { state.coachLevel = 1; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
+  const guidedCoach = await page.evaluate(() => {
+    const t = document.querySelector("[data-testid=coach-step-0]")?.dataset?.hint
+      || document.querySelector("[data-testid=coach-step-0]")?.textContent || "";
+    const mentor = document.querySelector("[data-testid=mentor-body]")?.textContent || "";
+    const tip = document.querySelector(".side .tip")?.textContent || "";
+    return { t, mentor, tip };
+  });
+  if (!/G4|quiet|complete|finish_reason/i.test(guidedCoach.t)) issues.push("Guided coach not targeted to failing assert: " + guidedCoach.t);
+  if (/drag the blocks/i.test(guidedCoach.tip)) issues.push("Guided tip still talks about dragging blocks");
+  if (!/honest|complete|finish|status/i.test(guidedCoach.mentor)) issues.push("Guided mentor missing status teaching");
+  await shot("qa-07a-guided-fail-coach.png");
   await page.evaluate(() => {
     [...document.querySelectorAll("[data-act=guided-set]")].find(b => b.dataset.c === "honest_status(error, finish)")?.click();
   });
@@ -281,6 +331,24 @@ try {
   await dismiss();
   if (!(await page.$("[data-testid=mentor-coach]"))) issues.push("Debug missing Mentor/Coach panel");
   if (!(await page.$("[data-testid=debug-process]"))) issues.push("Debug missing process hierarchy");
+  const dbgAid = await page.evaluate(() => {
+    const problems = [];
+    const coaches = new Set();
+    for (let i = 0; i < BUGS.length; i++) {
+      state.bugI = i; state.bugPhase = "observe"; state.coachLevel = 1; render();
+      document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+      const mentor = document.querySelector("[data-testid=mentor-body]")?.textContent || "";
+      const c0 = document.querySelector("[data-testid=coach-step-0]")?.textContent || "";
+      const tip = document.querySelector(".side .tip")?.textContent || "";
+      if (!/bug|run|symptom|typeerror|flush|history|complete|usage/i.test(mentor)) problems.push("weak debug mentor @" + i);
+      if (/drag the blocks/i.test(tip)) problems.push("debug tip mentions blocks @" + i);
+      coaches.add(c0.slice(0, 48));
+    }
+    if (coaches.size < 4) problems.push("debug coach not unique per bug: " + coaches.size);
+    state.bugI = 0; state.bugPhase = "observe"; state.coachLevel = 0;
+    return problems;
+  });
+  dbgAid.forEach(p => issues.push("Debug aid: " + p));
   for (let i = 0; i < 5; i++) {
     await clickTid("bug-to-find");
     await page.evaluate(() => {
