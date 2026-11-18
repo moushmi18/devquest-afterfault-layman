@@ -113,15 +113,18 @@ try {
   await clickTid("to-explore");
   await dismiss();
 
-  // Explore: teach gate + a few labs (full 12 would be long; verify gate + progression)
+  // Explore: teach gate + SSE / endline labs + full beat teach coverage
   await shot("qa-04-explore-teach.png");
   if (!(await page.$("[data-testid=teach-card]"))) issues.push("Explore missing teach-card on first beat");
   await clickTid("x-taught");
   await clickTid("x-lever");
   if (!(await page.$("[data-testid=x-next]"))) issues.push("Explore next missing after open");
+  const exploreIds = await page.evaluate(() => XBEATS.map(b => b.id));
+  if (!exploreIds.includes("sse") || !exploreIds.includes("endline")) issues.push("Explore missing sse/endline beats: " + exploreIds.join(","));
   // Complete explore via state but verify each beat has teach
   const teachCoverage = await page.evaluate(() => {
     const missing = [];
+    const sseOk = [];
     for (let i = 0; i < XBEATS.length; i++) {
       state.xq = xqInit();
       state.xq.beat = i;
@@ -134,23 +137,28 @@ try {
       // unlock and ensure interactive surface appears
       state.xq.taught[id] = true;
       render();
+      if (id === "sse") sseOk.push(!!document.querySelector("[data-testid=sse-box]"), !!document.querySelector("[data-testid=xcheck-sse]"));
+      if (id === "endline") sseOk.push(!!document.querySelector("[data-testid=xcheck-endline]"));
     }
-    return missing;
+    return { missing, sseOk, n: XBEATS.length };
   });
-  if (teachCoverage.length) issues.push("Explore beats without teach: " + teachCoverage.join(","));
+  if (teachCoverage.missing.length) issues.push("Explore beats without teach: " + teachCoverage.missing.join(","));
+  if (teachCoverage.n < 14) issues.push("Explore beat count expected >=14 got " + teachCoverage.n);
+  if (teachCoverage.sseOk.includes(false)) issues.push("Explore SSE/endline interactive surface missing");
 
-  // Assign A-D wrong/right
+  // Assign A-D wrong/right (vocab gate first)
   await page.evaluate(() => { jumpStage(2); });
   await dismiss();
+  if (!(await page.$("[data-testid=as-vocab]"))) issues.push("Assign missing vocab teach gate");
   for (let s = 0; s < 4; s++) {
     await page.evaluate((step) => {
-      state.asStep = step; state.asPicked = null; state.asResolved = false; render();
+      state.asStep = step; state.asPicked = null; state.asResolved = false; state.asVocab = false; render();
       document.querySelectorAll(".lm-veil").forEach(v => v.remove());
     }, s);
+    await clickTid("as-vocab-done");
     // pick wrong first if possible
     const sc = await page.evaluate(() => ASSIGN_SCENARIOS[state.asStep]);
     const wrong = sc.ops.findIndex(o => !o.ok);
-    const right = sc.ops.findIndex(o => o.ok);
     await clickTid("as-pick-" + wrong);
     await clickTid("as-commit");
     const wrongMarkedOk = await page.evaluate((wi) => {
@@ -162,10 +170,11 @@ try {
   }
   // redo Assign correctly for score
   await page.evaluate(() => {
-    state.asStep = 0; state.asScore = 0; state.asPicked = null; state.asResolved = false; render();
+    state.asStep = 0; state.asScore = 0; state.asPicked = null; state.asResolved = false; state.asVocab = false; render();
     document.querySelectorAll(".lm-veil").forEach(v => v.remove());
   });
   for (let s = 0; s < 4; s++) {
+    await clickTid("as-vocab-done");
     const right = await page.evaluate(() => ASSIGN_SCENARIOS[state.asStep].ops.findIndex(o => o.ok));
     await clickTid("as-pick-" + right);
     await clickTid("as-commit");
@@ -175,10 +184,12 @@ try {
   if (asScore !== 4) issues.push("Assign score expected 4 got " + asScore);
   await shot("qa-05-assign-done.png");
 
-  // Predict all 6
+  // Predict all 6 — teach gate before each question
   await page.evaluate(() => { jumpStage(3); });
   await dismiss();
+  if (!(await page.$("[data-testid=pred-teach]"))) issues.push("Predict missing teach-first card");
   for (let i = 0; i < 6; i++) {
+    await clickTid("pred-taught");
     const correct = await page.evaluate(() => PRED[state.predI].correct);
     await page.evaluate((c) => {
       const el = document.querySelector(`[data-act=pred-pick][data-i="${c}"]`);
@@ -192,10 +203,13 @@ try {
   // Code brief → micro skip via solve → guided → indep
   await page.evaluate(() => { jumpStage(4); });
   await dismiss();
+  if (!(await page.$("[data-testid=mentor-coach]"))) issues.push("Code Brief missing Mentor/Coach panel");
   await shot("qa-07-code-brief.png");
   // walk last step
   await page.evaluate(() => { state.codeWalk = CODE_WALK.length - 1; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
   await clickTid("to-micro");
+  if (!(await page.$("[data-testid=mentor-coach]"))) issues.push("Code Micro missing Mentor/Coach panel");
+  if (!(await page.$("[data-testid=micro-guide]"))) issues.push("Code Micro missing guided learning banner");
   // auto-solve micro for progression test
   await page.evaluate(() => {
     state.dd.lines = [
@@ -265,6 +279,8 @@ try {
   // Debug all 5
   await page.evaluate(() => { jumpStage(5); });
   await dismiss();
+  if (!(await page.$("[data-testid=mentor-coach]"))) issues.push("Debug missing Mentor/Coach panel");
+  if (!(await page.$("[data-testid=debug-process]"))) issues.push("Debug missing process hierarchy");
   for (let i = 0; i < 5; i++) {
     await clickTid("bug-to-find");
     await page.evaluate(() => {

@@ -3,18 +3,18 @@ const INTRO_T = 45;
 const ISHOTS = [[0,6],[6,12],[12,21],[21,28.3],[28.3,38.6],[38.6,45]];
 /* voiceover: [start, file, duration, subtitle, speaker]. Narrator + character lines, timed to the shots. */
 const IVO = [
-  [0.5, "n1", 4.46, "Friday, 9:40 PM. Monsoon rush in the Retry Storm."],
-  [6.3, "n2", 4.22, "Rohan orders dinner. Then asks where it is."],
+  [0.5, "n1", 4.46, "Tonight: a restaurant support chat under peak load."],
+  [6.3, "n2", 4.22, "Rohan asks where his order is."],
   [10.6, "rohan1", 1.39, "Where is my order?", "Rohan"],
-  [12.4, "n3", 2.88, "The reply starts typing, word by word…"],
+  [12.4, "n3", 2.88, "The reply streams word by word…"],
   [16.0, "n4", 2.74, "…and stops. Mid-sentence."],
   [18.8, "rohan2", 2.21, "Hello? You still there?", "Rohan"],
-  [21.4, "n5", 4.78, "Replies freeze across the city. The board says: All good."],
+  [21.4, "n5", 4.78, "Chats freeze. The status board still says All good."],
   [26.3, "ila", 1.8, "Let them think it's done.", "Ila"],
   [28.6, "n6", 1.92, "Tanvi's crew spots it first."],
   [30.6, "tanvi", 4.27, "That's my chat. Half a sentence. Green tick.", "Tanvi"],
   [35.2, "vyapti", 3.14, "A reply isn't done until it says it's done.", "Vyapti", "ai"],
-  [39.0, "n7", 6.05, "Mission 3.5. The Unfinished Line. Make the reply arrive whole."],
+  [39.0, "n7", 6.05, "Mission 3.5 · Streaming Responses. Make the reply arrive whole."],
 ];
 const IVY_OFF = [35.2, 38.4, "Hint: a reply is done only when it says so."];
 function introInit() { return { t:0, playing:true, sound:true }; }
@@ -41,28 +41,32 @@ function renderIntro() {
   const app = document.getElementById("app");
   const I = state.intro;
   const words = ["Your","order","is","on","the"];
-  app.innerHTML = topbar(null, "Mission 3.5 · Intro") + `<div class="intro" data-testid="intro">
+  app.innerHTML = topbar(null, "Mission 3.5 · Streaming Responses · Intro") + `<div class="intro" data-testid="intro">
     <div class="iscreen" id="iscreen">
       <div class="ish" data-s="0"><div class="icam"><img class="ibg" src="${ART}retry-storm.jpg" alt=""><div class="irain"></div><div class="iveil"></div>
+        <div class="itopic-badge">Topic · Streaming Responses</div>
         <div class="isig"><i class="r"></i><i class="a"></i><i class="g"></i></div></div></div>
       <div class="ish" data-s="1"><div class="icam lav"><div class="iroom"></div><img class="ichar rohan" src="${ART}rohan-body.jpg" alt="Rohan">
-        <div class="iphone small"><div class="ph-h"><span class="logo-dd">DD</span>Dabba Dash</div><div class="iorder">${ic("basket",26,"#F59E0B")}<b>Biryani × 1</b><span class="iplaced">${ic("check",14,"#fff")} Order placed</span></div><div class="b u iask">Where is my order?</div></div></div></div>
-      <div class="ish" data-s="2"><div class="icam lav2"><div class="iphone big"><div class="ph-h"><span class="logo-dd">DD</span>Dabba Dash support<span class="sp"></span><span class="st-ok">● live</span></div>
+        <div class="iphone small"><div class="ph-h"><span class="logo-dd">RS</span>Restaurant Support</div><div class="iorder">${ic("basket",26,"#F59E0B")}<b>Dinner × 1</b><span class="iplaced">${ic("check",14,"#fff")} Order placed</span></div><div class="b u iask">Where is my order?</div></div></div></div>
+      <div class="ish" data-s="2"><div class="icam lav2"><div class="iphone big"><div class="ph-h"><span class="logo-dd">RS</span>Restaurant Support Assistant<span class="sp"></span><span class="st-ok">● live</span></div>
         <div class="b u">Where is my order?</div><div class="b bot"><span id="itype"></span><span class="caret"></span></div><div class="ifrozen" id="ifrozen">${ic("clock",14,"#EF4444")} <span id="itimer">00:00</span></div></div>
         ${words.map((w,i)=>`<span class="ifly" data-i="${i}">${w}</span>`).join("")}</div></div>
       <div class="ish" data-s="3"><div class="icam dark"><img class="ibg" src="${ART}retry-storm.jpg" alt=""><div class="iglitch"></div>
-        <div class="iwall">${ic("check",30,"#fff")}<b>All good</b><span>4,000 chats ✓</span></div>
+        <div class="iwall">${ic("check",30,"#fff")}<b>All good</b><span>status board · 4,000 chats ✓</span></div>
         <div class="imini m1">Your order is on the<span class="caret"></span></div><div class="imini m2">Your table is<span class="caret"></span></div><div class="imini m3">Refund will be<span class="caret"></span></div>
         <div class="iila"><img src="${ART}ila-face.jpg" alt="Ila">${ic("glitch",26,"#FCA5A5")}</div></div></div>
       <div class="ish" data-s="4"><div class="icam lav"><img class="ichar tanvi" src="${ART}tanvi-body.jpg" alt="Tanvi"><img class="iface samar" src="${ART}samar-face.jpg" alt="Samar"><img class="iface sana" src="${ART}sana-face.jpg" alt="Sana">
         <div class="ibub tb">${dl("tanvi","That's my chat. Half a sentence. Green tick.")}</div>
         <div class="iorb"><img class="orb" src="${ART}${state.aiOn?"vyapti-speak":"vyapti-off"}.jpg" alt="Vyapti"></div>
         ${state.aiOn ? `<div class="ibub vb">${dl("vyapti","A reply isn't done until it says it's done.")}</div>` : ""}</div></div>
-      <div class="ish" data-s="5"><div class="icam title"><div class="itc"><div class="kick">Afterfault · Mission 3.5</div><h1>The Unfinished Line</h1>
-        <div class="igoal">${ic("flag",18,"#F59E0B")} Goal: Make the reply arrive whole</div>
-        <button type="button" class="btn istart" data-act="intro-start" data-testid="intro-start">${ic("play",18,"#fff")} Start</button></div></div></div>
+      <div class="ish" data-s="5"><div class="icam title"><div class="itc"><div class="kick">Afterfault · Mission 3.5 · Streaming Responses</div><h1>The Unfinished Line</h1>
+        <div class="igoal">${ic("flag",18,"#F59E0B")} Goal: Make the reply arrive whole · honest finish signals</div>
+        <div class="row" style="gap:10px;justify-content:center;margin-top:10px">
+          <button type="button" class="btn istart" data-act="intro-start" data-testid="intro-start">${ic("play",18,"#fff")} Start mission</button>
+          <button type="button" class="btn g istart" data-act="intro-start" data-testid="intro-skip-card">Skip trailer</button>
+        </div></div></div></div>
       <div class="isub" id="isub"></div>
-      <button type="button" class="iskip" data-act="intro-start" data-testid="intro-skip">Skip ${ic("step",14,"#fff")}</button>
+      <button type="button" class="iskip iskip-first" data-act="intro-start" data-testid="intro-skip">Skip trailer ${ic("step",14,"#fff")}</button>
     </div>
     <div class="ictl">
       <button type="button" class="ib" data-act="intro-play" data-testid="intro-play" aria-label="Play or pause">${ic(I.playing?"pause":"play",16,"#fff")}</button>

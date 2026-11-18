@@ -16,8 +16,9 @@ function initialState() {
     stagesDone:0, curStage:null,
     clues:[false,false,false,false], clueOpen:null, discMode:"scene", discAnswer:null,
     exStep:0, exPlay:0, exPlaying:false, exSpeed:1, flushOn:false, exCheck:{}, recapOrder:[null,null,null], recapHold:null, recapTapped:[],
-    asStep:0, asPicked:null, asResolved:false, asHint:0, asScore:0, cliBuilt:false, chats:defaultChats(),
-    predI:0, predPhase:"q", predPick:null, predConf:"think so", predResults:[],
+    asStep:0, asPicked:null, asResolved:false, asHint:0, asScore:0, asVocab:false, cliBuilt:false, chats:defaultChats(),
+    predI:0, predPhase:"teach", predPick:null, predConf:"think so", predResults:[],
+    coachLevel:0,
     codeTier:"brief", codeWalk:0, slots:{}, selectedTile:null, microWrong:false, microRan:false,
     hintLevel:0, guidedFixed:false, guidedChoice:null, guidedChecked:false, guidedFails:0, guidedStates:null, guidedOut:"", guidedErr:null, guidedReal:false,
     indepCond:"text", testStates:null, testsDone:false, pySrc:null, pyReal:false, pyOut:"", pyErr:null, realPass:0,
@@ -51,10 +52,10 @@ function jumpStage(i) {
   // reset that stage's local progress so jumps land at the start
   if (i===0) { state.dq=dqInit(); state.clues=[false,false,false,false]; state.clueOpen=null; state.discMode="scene"; state.discAnswer=null; }
   if (i===1) { state.xq=xqInit(); state.exStep=0; state.exPlay=0; state.exCheck={}; state.flushOn=false; state.recapOrder=[null,null,null]; state.recapTapped=[]; }
-  if (i===2) { state.asStep=0; state.asPicked=null; state.asResolved=false; state.asHint=0; state.asScore=0; state.cliBuilt=false; state.chats=defaultChats(); }
-  if (i===3) { state.predI=0; state.predPhase="q"; state.predPick=null; state.predResults=[]; }
-  if (i===4) { state.dd=ddInit(); state.codeTier="brief"; state.codeWalk=0; state.slots={}; state.selectedTile=null; state.microWrong=false; state.microRan=false; state.hintLevel=0; state.guidedFixed=false; state.guidedChoice=null; state.guidedChecked=false; state.guidedFails=0; state.guidedStates=null; state.guidedOut=""; state.guidedErr=null; state.guidedReal=false; state.indepCond="text"; state.testStates=null; state.testsDone=false; state.pySrc=null; state.pyReal=false; state.pyOut=""; state.pyErr=null; state.realPass=0; state.microPy=null; }
-  if (i===5) { state.bugI=0; state.bugPhase="observe"; state.bugToast=null; state.bugsFixed=0; state.bugPy=null; }
+  if (i===2) { state.asStep=0; state.asPicked=null; state.asResolved=false; state.asHint=0; state.asScore=0; state.asVocab=false; state.cliBuilt=false; state.chats=defaultChats(); }
+  if (i===3) { state.predI=0; state.predPhase="teach"; state.predPick=null; state.predResults=[]; }
+  if (i===4) { state.dd=ddInit(); state.codeTier="brief"; state.codeWalk=0; state.slots={}; state.selectedTile=null; state.microWrong=false; state.microRan=false; state.hintLevel=0; state.coachLevel=0; state.guidedFixed=false; state.guidedChoice=null; state.guidedChecked=false; state.guidedFails=0; state.guidedStates=null; state.guidedOut=""; state.guidedErr=null; state.guidedReal=false; state.indepCond="text"; state.testStates=null; state.testsDone=false; state.pySrc=null; state.pyReal=false; state.pyOut=""; state.pyErr=null; state.realPass=0; state.microPy=null; }
+  if (i===5) { state.bugI=0; state.bugPhase="observe"; state.bugToast=null; state.bugsFixed=0; state.bugPy=null; state.coachLevel=0; }
   if (i===6) { state.bossPhase="challenge"; state.masteryChal={}; state.masteryTried=false; state.masteryHelp=false; state.masterySrc=null; state.masteryPy=null; state.masteryCodeOk=false; state.masteryConceptsDone=false; state.hearts=3; state.shield=100; state.p2i=0; state.misses=0; state.missLog=[]; state.p2Cleared=false; state.p2Pick=null; }
   render();
 }
@@ -172,6 +173,25 @@ function renderAssign() {
   let content="", tip="as0", speak="idle";
   if (step < 4) {
     const sc = ASSIGN_SCENARIOS[step];
+    const vocab = (sc.vocab || []).map(([k,v]) => `<div class="vocab-row"><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join("");
+    if (!state.asVocab) {
+      content = `<div class="as-scenario" data-testid="as-scenario-${sc.id}">
+        <div class="row" style="align-items:center;gap:8px;margin-bottom:8px">${chip("Scenario "+sc.id,"dk")}<b class="pop" style="color:#301768;font-size:18px">${esc(sc.title)}</b><span class="sp"></span>${chip((step+1)+" / 4")}${chip("Streaming Responses")}${simLabel("")}</div>
+        <div class="as-grid">
+          <div class="learn-card"><i>Situation</i><p>${esc(sc.situation)}</p></div>
+          <div class="learn-card"><i>Problem</i><p>${esc(sc.problem)}</p></div>
+          <div class="learn-card"><i>Objective</i><p>${esc(sc.objective)}</p></div>
+          <div class="learn-card"><i>Constraints</i><p>${esc(sc.constraints)}</p></div>
+          <div class="learn-card"><i>Expected behaviour</i><p>${esc(sc.expected)}</p></div>
+          <div class="learn-card task"><i>Learn the options first</i>
+            <p>Each choice below has a clear meaning. Read them before you decide — traps are labelled so you know what “retry forever” or “mark all good” would do.</p>
+            <div class="vocab-box" data-testid="as-vocab">${vocab}</div>
+            <div class="row" style="justify-content:flex-end;margin-top:10px">${btn("Got it — decide "+ic("play",14,"#fff"),"as-vocab-done","data-testid='as-vocab-done'")}</div>
+          </div>
+        </div>
+      </div>`;
+      tip = ["as0","as1","as2","as3"][step];
+    } else {
     const ops = sc.ops.map((o, i) => {
       let s = "";
       if (state.asResolved) s = o.ok ? "ok" : (state.asPicked === i ? "bad" : "dim");
@@ -180,7 +200,7 @@ function renderAssign() {
     }).join("");
     const picked = state.asPicked != null ? sc.ops[state.asPicked] : null;
     content = `<div class="as-scenario" data-testid="as-scenario-${sc.id}">
-      <div class="row" style="align-items:center;gap:8px;margin-bottom:8px">${chip("Scenario "+sc.id,"dk")}<b class="pop" style="color:#301768;font-size:18px">${esc(sc.title)}</b><span class="sp"></span>${chip((step+1)+" / 4")}${simLabel("")}</div>
+      <div class="row" style="align-items:center;gap:8px;margin-bottom:8px">${chip("Scenario "+sc.id,"dk")}<b class="pop" style="color:#301768;font-size:18px">${esc(sc.title)}</b><span class="sp"></span>${chip((step+1)+" / 4")}${chip("Streaming Responses")}${simLabel("")}</div>
       <div class="as-grid">
         <div class="learn-card"><i>Situation</i><p>${esc(sc.situation)}</p></div>
         <div class="learn-card"><i>Problem</i><p>${esc(sc.problem)}</p></div>
@@ -197,6 +217,7 @@ function renderAssign() {
     </div>`;
     tip = ["as0","as1","as2","as3"][step];
     speak = state.asResolved ? "speak" : "idle";
+    }
   } else {
     content = `<div class="col" style="flex:1;gap:12px">
       <div class="as-grid">
@@ -211,8 +232,8 @@ function renderAssign() {
     </div>`;
     tip = "asDone"; speak = "speak";
   }
-  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 3 · Assign</div><h2>Apply streaming honesty</h2></div><div class="sp"></div>${chip("Not a Discovery repeat · decide app behaviour")}</div>${content}</div>`;
-  shell({cur:2,done:2,tag:"Assign · Scenarios"}, sidePanel("Decide correct app behaviour for real stream outcomes. Explain with finish signals — not vibes.", tip, null, speak)+main);
+  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 3 · Assign · Streaming Responses</div><h2>Apply streaming honesty</h2></div><div class="sp"></div>${chip("Not a Discovery repeat · decide app behaviour")}</div>${content}</div>`;
+  shell({cur:2,done:2,tag:"Assign · Scenarios"}, sidePanel("Decide correct app behaviour for real stream outcomes. Options are taught before you choose.", tip, null, speak)+main);
 }
 
 /* ---------------- PREDICTIONS */
@@ -235,13 +256,26 @@ const PRED_USES = [
 function renderPred() {
   const i=state.predI, p=PRED[i], L="ABCD";
   const uses = (PRED_USES[i]||[]).map(u => chip(u,"amb")).join("");
-  const head=`<div class="hd"><div><div class="kick">Stage 4 · Predict · ${p.id} of 6</div><h2>${md(p.title)}</h2></div><div class="sp"></div>${pdots()}</div>
+  const teach = PRED_TEACH[i] || { title: "How this code path works", body: "Review the idea before you predict." };
+  const head=`<div class="hd"><div><div class="kick">Stage 4 · Predict · Streaming Responses · ${p.id} of 6</div><h2>${md(p.title)}</h2></div><div class="sp"></div>${pdots()}</div>
     <div class="row" style="gap:6px;align-items:center;margin-bottom:6px"><span class="lbl">Uses taught concepts</span>${uses}${SIM_BADGE}</div>`;
   let main="";
-  if (state.predPhase==="q") {
+  if (state.predPhase==="teach") {
+    main = `<div class="main">${head}
+      <div class="teach-card" data-testid="pred-teach" style="max-width:960px;margin:0 auto">
+        <div class="teach-kicker">${ic("bulb",16,"#B45309")} How it works in code · then predict</div>
+        <h3>${esc(teach.title)}</h3>
+        <p style="margin:0 0 10px;font:500 14px/1.45 Inter;color:#1F2937">${esc(teach.body)}</p>
+        <div class="mini" style="margin-bottom:10px">${md(p.setup)}</div>
+        ${codeBlock(p.src,"risky_patch.py · the change under review",{},"sm")}
+        <div class="row" style="justify-content:flex-end;margin-top:12px">${btn("I understand — predict "+ic("play",14,"#fff"),"pred-taught","data-testid='pred-taught'")}</div>
+      </div></div>`;
+  } else if (state.predPhase==="q") {
     const ops = p.ops.map((o,k)=>opt(L[k],o,state.predPick===k?"sel":"","pred-pick",`data-i="${k}"`)).join("");
     const conf = ["sure","think so","guessing"].map(c=>`<button type="button" class="chip ${state.predConf===c?"dk":"gry"}" data-act="pred-conf" data-c="${c}">${c}</button>`).join("");
-    main = `<div class="main">${head}<div class="row" style="flex:1"><div class="col" style="width:480px"><div class="mini" style="margin-bottom:6px">${md(p.setup)}</div>${codeBlock(p.src,"risky_patch.py",{},"sm")}</div>
+    main = `<div class="main">${head}
+      <div class="teach-strip done" data-testid="pred-teach-strip"><b>${esc(teach.title)}</b><span class="mini">${esc(teach.body)}</span></div>
+      <div class="row" style="flex:1"><div class="col" style="width:480px"><div class="mini" style="margin-bottom:6px">${md(p.setup)}</div>${codeBlock(p.src,"risky_patch.py",{},"sm")}</div>
       <div class="col f1"><div class="lbl">What will the customer see?</div><div class="opts one">${ops}</div>
       <div class="row" style="align-items:center;gap:6px"><span class="lbl">Confidence</span>${conf}</div>
       <div class="row" style="justify-content:flex-end">${state.predPick!=null?btn("Commit prediction","pred-commit","data-testid='commit-pred'"):btn("Commit prediction","noop","","dis")}</div></div></div></div>`;
@@ -259,14 +293,12 @@ function renderPred() {
     main = `<div class="main">${head}<div class="row" style="flex:1"><div class="col" style="width:420px"><div class="lbl">Simulated result ${SIM_BADGE}</div>${predOutcome(p.id)}</div>
       <div class="col f1"><div class="opts one">${ops}</div>${f}<div class="row" style="align-items:center;gap:8px">${cal}${ok?"":chip("Replay E3?")}<span class="sp"></span>${xpblk}${nxt}</div></div></div></div>`;
   }
-  const tipOn = state.predPhase==="q" ? (i===0?p.tipOn:p.tipOn) : (okTip());
-  function okTip() { return state.predResults[i] ? p.tipRevealOn : p.tipRevealOff; }
-  // re-shell with correct tip
-  const tipKeyCustom = state.predPhase==="q" ? (state.aiOn?p.tipOn:p.tipOff) : (state.aiOn?(state.predResults[i]?p.tipRevealOn:p.tipRevealOff):(state.predResults[i]?p.tipRevealOff:p.tipRevealOff));
-  // Use sidePanel with a one-off tip by temporarily stuffing TIPS
-  TIPS._pred = [state.predPhase==="q"?p.tipOn: (state.predResults[i]?p.tipRevealOn:p.tipRevealOff), state.predPhase==="q"?p.tipOff:p.tipRevealOff];
-  shell({cur:3,done:3,tag:`Predictions · ${p.id} · ${state.predPhase==="q"?"Question":"Reveal"}`},
-    sidePanel("Predict what customers will see after each of Ila's \"improvements\".", "_pred", null, state.predPhase==="reveal"?"speak":"idle")+main);
+  const phaseTip = state.predPhase==="teach" ? ["Read how the code path works, then predict.", "Read the teach card, then continue."]
+    : state.predPhase==="q" ? [p.tipOn, p.tipOff]
+    : [state.predResults[i]?p.tipRevealOn:p.tipRevealOff, state.predResults[i]?p.tipRevealOff:p.tipRevealOff];
+  TIPS._pred = phaseTip;
+  shell({cur:3,done:3,tag:`Predictions · ${p.id} · ${state.predPhase==="teach"?"Teach":state.predPhase==="q"?"Question":"Reveal"}`},
+    sidePanel("First learn how the code behaves, then predict the customer view.", "_pred", null, state.predPhase==="reveal"?"speak":"idle")+main);
 }
 
 /* ---------------- CODE */
@@ -318,6 +350,11 @@ function renderCode() {
     const i = state.codeWalk;
     const step = CODE_WALK[i];
     const list = CODE_WALK.map((w, k) => `<button type="button" class="walk-step ${k===i?"c":(k<i?"d":"")}" data-act="code-walk" data-i="${k}" data-testid="code-walk-${k}"><b>${k+1}</b><span>${esc(w.t)}</span></button>`).join("");
+    const aid = mentorCoachPanel(
+      "Mentor: " + step.t + " — " + step.d,
+      ["Focus on this step only before moving on.", "Connect it to Explore labs (stream, flush, join, finish_reason).", "Ask: where does this line live in the for-loop?"],
+      state.coachLevel
+    );
     main = `<div class="main">${codehd("Brief","Build a stream consumer — taught first")}
       <div class="row" style="flex:1;gap:14px;min-height:0">
         <div class="col" style="width:280px;gap:6px;overflow:auto">${list}</div>
@@ -325,6 +362,7 @@ function renderCode() {
           <i>Step ${i+1} · ${esc(step.t)}</i>
           <p style="font-size:15px;line-height:1.5;margin:8px 0 12px">${esc(step.d)}</p>
           ${i===CODE_WALK.length-1 ? codeBlock(CODE_SKELETON,"line_keeper.py · target shape",{},"xs") : `<div class="mini">OpenAI-style <code class="inline">chat.completions</code> with <code class="inline">stream=True</code> — same SDK family as the rest of this mission.</div>`}
+          ${aid}
           <div class="row" style="justify-content:flex-end;gap:8px;margin-top:auto">
             ${i>0?btn("Back","code-walk",`data-i="${i-1}"`,"g sm"):""}
             ${i<CODE_WALK.length-1?btn("Next idea "+ic("play",14,"#fff"),"code-walk",`data-i="${i+1}" data-testid='code-walk-next'`):btn("Practice with blocks "+ic("play",14,"#fff"),"to-micro","data-testid='to-micro'")}
@@ -364,10 +402,15 @@ function renderCode() {
           : `<div class="term" style="flex:1;padding:8px 12px;font-size:12px" data-testid="guided-py-out"><span class="dim">${REAL_BADGE} Pick a status line, then Run real Python checks.</span></div>`));
     const edits = !state.guidedFixed ? `<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"><span class="lbl">Set status to</span>
       ${['"complete"',"honest_status(error, finish)",' "partial" if text else "failed"'].map(c=>`<button type="button" class="tile mono" data-act="guided-set" data-c="${esc(c)}" data-testid="guided-set">${esc(c)}</button>`).join("")}</div>` : "";
+    const aidG = mentorCoachPanel(
+      "Mentor: status is decided <b>after</b> the loop from error + finish_reason — never hard-coded \"complete\".",
+      MICRO_COACH,
+      state.coachLevel
+    );
     main = `<div class="main">${codehd("Guided","Write consume() — honest status")}
       ${pyLoadBar()}
       <div class="mini" style="margin-bottom:6px">Starter hard-codes <b>complete</b>. Choose the honest status expression, then run real assertions on a mock stream. ${realLabel("")}</div>
-      <div class="row" style="flex:1;min-height:0"><div class="col f1">${codeBlock(src,"line_keeper.py",marks,"sm")}${edits}</div>
+      <div class="row" style="flex:1;min-height:0"><div class="col f1">${codeBlock(src,"line_keeper.py",marks,"sm")}${edits}${aidG}</div>
       <div class="col" style="width:350px"><div class="card col" style="gap:5px;padding:12px" data-testid="guided-tests"><div class="row" style="align-items:center"><div class="lbl">Guided checks · real Python</div><span class="sp"></span>${chip(npass+" / "+GUIDED_TESTS_REAL.length, state.guidedFixed?"grn":"gry")}</div><div class="tests">${sr}</div></div>${hint}</div></div>
       <div class="row" style="align-items:center;gap:10px">${term}${btn(PY.status==="loading"?"Loading…":"Run real Python","guided-check","data-testid='guided-check'", PY.status==="loading"?"dis":"sm")}${state.guidedFixed?btn("Next: Independent "+ic("play",14,"#fff"),"to-indep"):""}</div></div>`;
     tip = state.guidedFixed?"guidedOk":"guided";
@@ -379,12 +422,17 @@ function renderCode() {
     const eff = allPass ? `<div class="card col" style="gap:6px;padding:12px"><div class="row" style="align-items:center"><b class="pop" style="color:${state.dark?"#EDE7FD":"#301768"}">Ready for Debug</b><span class="sp"></span>${chip("real Python","grn")}</div>
       <div class="mini">Your consume() passed live assertions on a mock stream.</div>
       <div class="row" style="gap:6px;align-items:center">${chip("✓ "+state.realPass+"/"+INDEP_TESTS_REAL.length,"grn")}<span class="sp"></span><div style="font:800 22px Poppins;color:#F59E0B">+25*</div>${btn("Continue to Debug "+ic("play",12,"#fff"),"to-debug","","sm")}</div></div>` : "";
+    const aidI = mentorCoachPanel(
+      "Mentor: edit consume() so finish_reason and errors drive status. Close/cleanup belongs in finally.",
+      ["Run once and read which assertion fails.", "Compare with the Brief skeleton — same control flow.", "Quiet stream → partial; stop → complete; length → truncated."],
+      state.coachLevel
+    );
     main = `<div class="main">${codehd("Independent","Ship stream_chat.py — run real Python")}
       ${pyLoadBar()}
       <div class="mini" style="margin-bottom:6px">Edit <code class="inline">consume()</code>. The starter hard-codes <b>complete</b> — fix honest status, then Run. ${realLabel("")}</div>
       <div class="row" style="flex:1;min-height:0"><div class="col f1" style="min-height:0">
         <textarea class="py-editor" data-testid="py-editor" spellcheck="false" aria-label="Python consume function">${esc(state.pySrc)}</textarea>
-        ${out}${eff}
+        ${out}${eff}${aidI}
       </div>${testPanelReal(states)}</div>
       <div class="row" style="justify-content:flex-end;gap:8px">
         ${btn("Reset starter","py-reset","data-testid='py-reset'","g sm")}
@@ -439,17 +487,33 @@ function renderDebug() {
     : (fixed ? fb("ok", b.id+" fixed.", b.tipFixedOff)+`<div class="lbl">4 · Re-test ${REAL_BADGE}</div>${bp && bp.fixedSummary ? `<div class="py-out" data-testid="bug-py-fixed">${esc(bp.fixedSummary)}</div>` : b.after}${btn("Run fixed code","bug-run-fixed","data-testid='bug-run-fixed'","g sm")}`
     : (state.bugPhase==="find" ? `<div class="card" style="padding:12px" data-testid="find-hint"><div class="lbl">2 · Find the bug</div><div class="mini">Tap the buggy line, then choose a fix. Prefer a guard over a cast.</div></div>` : ""));
   const last = state.bugI===4 && fixed;
-  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 6 · Debug · Level ${lvl.lvl}/5</div><h2>${esc(b.title)}</h2></div><div class="sp"></div>${chip(lvl.skill,"amb")}</div>
+  const aidD = mentorCoachPanel(
+    observing ? "Mentor: reproduce first. Run the broken code and name the symptom before hunting lines."
+      : state.bugPhase==="find" ? "Mentor: find the line that causes the symptom. Prefer a guard over a cast that hides the crash."
+      : fixed ? "Mentor: re-test after the fix. A patch that only hides the error is rejected."
+      : "Mentor: pick a real fix — not a hide. Weak patches get rejected with feedback.",
+    DEBUG_COACH,
+    state.coachLevel
+  );
+  const process = `<div class="debug-process" data-testid="debug-process">
+      <span class="${observing?"on":""}">1 · Reproduce</span>
+      <span class="${state.bugPhase==="find"?"on":""}">2 · Find</span>
+      <span class="${state.bugPhase==="choose"?"on":""}">3 · Fix</span>
+      <span class="${fixed?"on":""}">4 · Re-test</span>
+    </div>`;
+  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 6 · Debug · Streaming Responses · Level ${lvl.lvl}/5</div><h2>${esc(b.title)}</h2></div><div class="sp"></div>${chip(lvl.skill,"amb")}</div>
+    ${process}
     <div class="row" style="flex:1"><div class="col f1"><div class="lbl">${fixed?"Fix applied":"dabba_stream.py"}</div>
       <div class="${state.bugPhase==="find"?"debug-find":""}">${codeBlock(src,"dabba_stream.py",marks)}</div>
       ${fixed?fb("ok","Root cause addressed.",b.tipFixedOff):""}
+      ${aidD}
     </div>
     <div class="col" style="width:380px">${bugTracker()}${observePane}${!observing?`<div class="lbl">${fixed?"Before → after":"Symptom"}</div>${!observing?b.before:""}${fixed?b.after:""}`:""}${toast}${fixes}
     </div></div>
     ${fixed?`<div class="row" style="justify-content:flex-end;gap:10px">${last?`<div style="font:800 24px Poppins;color:#F59E0B">+15*</div>${btn("Continue to Mastery "+ic("play",14,"#fff"),"to-boss")}`:btn("Next bug "+ic("play",14,"#fff"),"bug-next")}</div>`:""}
   </div>`;
   TIPS._bug = fixed ? [b.tipFixedOn,b.tipFixedOff] : [b.tipOn,b.tipOff];
-  shell({cur:5,done:5,tag:`Debug · L${lvl.lvl}`}, sidePanel("Observe → find → fix → re-test. No one-click auto-fix as the primary path.", "_bug", [6,true], fixed?"speak":"idle")+main);
+  shell({cur:5,done:5,tag:`Debug · L${lvl.lvl}`}, sidePanel("Observe → find → fix → re-test. Mentor explains; Coach unlocks graded hints.", "_bug", [6,true], fixed?"speak":"idle")+main);
 }
 
 /* ---------------- MASTERY */
@@ -482,9 +546,9 @@ function renderBoss() {
     const mp = state.masteryPy;
     const tried = state.masteryTried;
     const rows = mp && mp.states ? INDEP_TESTS_REAL.map((t, i) => testRow(t.id, t.name, mp.states[i] || "pend", false, "")).join("") : "";
-    const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 7 · Mastery · Independent build</div><h2>Working streaming consumer</h2></div><div class="sp"></div>${REAL_BADGE}</div>
+    const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 7 · Mastery · Streaming Responses · Independent build</div><h2>Working streaming consumer</h2></div><div class="sp"></div>${REAL_BADGE}</div>
       ${pyLoadBar()}
-      <p class="mini" style="margin:0 0 8px">Build a consumer that renders progressively, keeps order, assembles the reply, handles completion, and detects incomplete/failed streams. Help unlocks only after you attempt a run. ${realLabel("")}</p>
+      <p class="mini" style="margin:0 0 8px"><b>Core assessment:</b> ship a working consumer (progressive render, order, assembly, completion, incomplete/failed detection). MCQs are optional support later — this code run is what proves mastery. Help unlocks only after you attempt a run. ${realLabel("")}</p>
       <div class="row" style="flex:1;min-height:0;gap:12px">
         <div class="col f1" style="min-height:0">
           <textarea class="py-editor" data-testid="mastery-editor" spellcheck="false" aria-label="Mastery Python consume">${esc(state.masterySrc)}</textarea>
@@ -1018,10 +1082,11 @@ function onClick(e) {
     if (state.recapTapped.length===6) setXP(15);
     render(); return;
   }
-  if (act==="to-assign") { state.stagesDone=2; state.curStage=2; setXP(15); go("assign"); return; }
-  if (act==="as-pick") { if (!state.asResolved) { state.asPicked = +t.dataset.i; render(); } return; }
+  if (act==="to-assign") { state.stagesDone=2; state.curStage=2; setXP(15); state.asVocab=false; go("assign"); return; }
+  if (act==="as-vocab-done") { state.asVocab = true; render(); return; }
+  if (act==="as-pick") { if (!state.asVocab || state.asResolved) return; state.asPicked = +t.dataset.i; render(); return; }
   if (act==="as-commit") {
-    if (state.asPicked == null || state.asResolved) return;
+    if (!state.asVocab || state.asPicked == null || state.asResolved) return;
     const sc = ASSIGN_SCENARIOS[state.asStep];
     const ok = !!(sc && sc.ops[state.asPicked] && sc.ops[state.asPicked].ok);
     state.asResolved = true;
@@ -1034,11 +1099,12 @@ function onClick(e) {
   }
   if (act==="as-next") {
     if (state.asStep < 4) state.asStep++;
-    state.asPicked = null; state.asResolved = false;
+    state.asPicked = null; state.asResolved = false; state.asVocab = false;
     render(); return;
   }
   if (act==="cli-build") { state.cliBuilt=true; render(); return; }
-  if (act==="to-pred") { state.stagesDone=3; state.curStage=3; setXP(25); go("pred"); return; }
+  if (act==="to-pred") { state.stagesDone=3; state.curStage=3; setXP(25); state.predPhase="teach"; go("pred"); return; }
+  if (act==="pred-taught") { state.predPhase="q"; render(); return; }
   if (act==="pred-pick") { state.predPick=+t.dataset.i; render(); return; }
   if (act==="pred-conf") { state.predConf=t.dataset.c; render(); return; }
   if (act==="pred-commit") {
@@ -1048,10 +1114,15 @@ function onClick(e) {
     if (state.predI===5) setXP(40);
     render(); return;
   }
-  if (act==="pred-next") { state.predI++; state.predPhase="q"; state.predPick=null; state.predConf="think so"; render(); return; }
-  if (act==="to-code") { state.stagesDone=4; state.curStage=4; setXP(40); state.codeTier="brief"; state.codeWalk=0; go("code"); return; }
+  if (act==="pred-next") { state.predI++; state.predPhase="teach"; state.predPick=null; state.predConf="think so"; render(); return; }
+  if (act==="coach-hint") {
+    const max = state.scene==="debug" ? DEBUG_COACH.length : (state.codeTier==="guided" || state.codeTier==="micro" ? MICRO_COACH.length : 3);
+    state.coachLevel = Math.min(max, (state.coachLevel || 0) + 1);
+    render(); return;
+  }
+  if (act==="to-code") { state.stagesDone=4; state.curStage=4; setXP(40); state.codeTier="brief"; state.codeWalk=0; state.coachLevel=0; go("code"); return; }
   if (act==="code-walk") { state.codeWalk = +t.dataset.i; render(); return; }
-  if (act==="to-micro") { state.codeTier="micro"; render(); return; }
+  if (act==="to-micro") { state.codeTier="micro"; state.coachLevel=0; render(); return; }
   if (act==="micro-tile") { state.selectedTile=t.dataset.t; render(); return; }
   if (act==="slot") {
     if (!state.selectedTile) return;
@@ -1076,7 +1147,7 @@ function onClick(e) {
     }
     render(); return;
   }
-  if (act==="to-guided") { state.codeTier="guided"; render(); return; }
+  if (act==="to-guided") { state.codeTier="guided"; state.coachLevel=0; render(); return; }
   if (act==="guided-hint") { state.hintLevel=Math.min(3,state.hintLevel+1); render(); return; }
   if (act==="guided-set") {
     state.guidedChoice = t.dataset.c;
@@ -1105,7 +1176,7 @@ function onClick(e) {
   if (act==="indep-check") { if (PY.status==="loading") return; runIndepTests(); return; }
   if (act==="py-load" || act==="py-retry") { pyEnsure(() => render()).catch(() => render()); render(); return; }
   if (act==="py-reset") { state.pySrc = CONSUME_BROKEN_STATUS; state.testStates=null; state.testsDone=false; state.pyOut=""; state.pyErr=null; state.pyReal=false; state.realPass=0; render(); return; }
-  if (act==="to-debug") { state.stagesDone=5; state.curStage=5; setXP(65); go("debug"); return; }
+  if (act==="to-debug") { state.stagesDone=5; state.curStage=5; setXP(65); state.coachLevel=0; go("debug"); return; }
   if (act==="bug-to-find") { state.bugPhase="find"; render(); return; }
   if (act==="bug-run") { runBugPython(false); return; }
   if (act==="bug-run-fixed") { runBugPython(true); return; }
@@ -1115,7 +1186,7 @@ function onClick(e) {
     else { state.bugPhase="choose"; state.bugToast={move:f.move, resp:f.resp}; }
     render(); return;
   }
-  if (act==="bug-next") { state.bugI++; state.bugPhase="observe"; state.bugToast=null; state.bugPy=null; render(); return; }
+  if (act==="bug-next") { state.bugI++; state.bugPhase="observe"; state.bugToast=null; state.bugPy=null; state.coachLevel=0; render(); return; }
   if (act==="to-boss") { state.stagesDone=6; state.curStage=6; setXP(80); state.bossPhase="challenge"; state.masteryChal={}; state.masteryTried=false; state.masteryHelp=false; state.masterySrc=null; state.masteryPy=null; state.masteryCodeOk=false; state.masteryConceptsDone=false; state.hearts=3; state.shield=100; go("boss"); return; }
   if (act==="chal-pick") {
     if (state.masteryConceptsDone) return;

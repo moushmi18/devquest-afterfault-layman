@@ -177,8 +177,41 @@ try {
   await page.evaluate(() => { jumpStage(0); fit(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
   await shot("qa-py-07-disc-1440.png");
 
+  // Mentor/Coach visible on Code + Debug; Predict teach gate
+  await page.setViewport({ width: 1440, height: 900 });
+  const aid = await page.evaluate(() => {
+    const out = {};
+    jumpStage(4); state.codeTier = "brief"; state.codeWalk = 0; state.coachLevel = 1; render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    out.codeBrief = !!document.querySelector("[data-testid=mentor-coach]");
+    state.codeTier = "micro"; render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    out.micro = !!document.querySelector("[data-testid=mentor-coach]") && !!document.querySelector("[data-testid=micro-guide]");
+    jumpStage(5); state.coachLevel = 1; render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    out.debug = !!document.querySelector("[data-testid=mentor-coach]") && !!document.querySelector("[data-testid=debug-process]");
+    jumpStage(3); render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    out.predTeach = !!document.querySelector("[data-testid=pred-teach]");
+    jumpStage(2); state.asVocab = false; render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    out.asVocab = !!document.querySelector("[data-testid=as-vocab]");
+    // SSE beat surface
+    jumpStage(1);
+    state.xq = xqInit();
+    const sseI = XBEATS.findIndex(b => b.id === "sse");
+    state.xq.beat = sseI; state.xq.taught.sse = true; render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    out.sse = !!document.querySelector("[data-testid=sse-box]");
+    return out;
+  });
+  await shot("qa-py-08-mentor-coach-code.png");
+  await page.evaluate(() => { jumpStage(5); state.coachLevel = 2; render(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
+  await shot("qa-py-09-mentor-coach-debug.png");
+  for (const [k, v] of Object.entries(aid)) if (!v) issues.push("pyodide aid check failed: " + k);
+
   console.log("ISSUES", JSON.stringify(issues, null, 2));
-  fs.writeFileSync(path.join(OUT, "qa-py-issues.json"), JSON.stringify({ issues, indep }, null, 2));
+  fs.writeFileSync(path.join(OUT, "qa-py-issues.json"), JSON.stringify({ issues, indep, aid }, null, 2));
   if (issues.length) process.exitCode = 2;
   else console.log("QA_PY_PASS");
 } catch (e) {

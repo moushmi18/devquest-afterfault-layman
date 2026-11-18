@@ -27,21 +27,36 @@ function answerFor() {
     if (s === "map") return "Walk to the glowing 3.5 tower (tap the map near it) and press Enter mission.";
     if (s === "avatar") return "Pick any of the four characters, then press Enter the Retry Storm. Your choice doesn't change the path.";
     if (s === "disc") return ["Press Send to both, then tap Bot B (the live one): it felt faster because it started talking 3 seconds sooner.",
-      "Tap the phone until the words stop (5 taps), then tap the green \"Delivered ✓\" on the ops wall, because it's lying.",
+      "Tap the phone until the words stop (5 taps), then tap the green \"Delivered ✓\" on the status board, because it's lying.",
       "Pick \"No finish signal\". Nothing crashed and the Wi-Fi was fine; nobody checked for the finish signal."][state.dq.step];
     if (s === "explore") {
       const beat = XBEATS[state.xq.beat].id;
       if (xc) { const key = xc.dataset.testid.replace("xcheck-", ""), ops = xc.querySelectorAll(".opt"); if (XCORRECT[key] != null && ops[XCORRECT[key]]) return `For the check, pick "${ops[XCORRECT[key]].textContent.replace(/^[A-C]/, "").trim()}".`; }
-      return ({open:"Flip the stream lever so it reads stream=True.", chunks:"Tap the lens to zoom in, tap the stream value to try False, then set it back to True. The check answer is \"small chunks, as written\".",
-        blank:"Tap the output buffer tank in the hallway.", flush:"Zoom in, then set end to \"\" and flush to True. The check answer is \"push to the screen now\".",
+      return ({open:"Flip the stream lever so it reads stream=True.",
+        sse:"Read the SSE transcript. For the check, pick `data: [DONE]` — that ends the HTTP stream.",
+        chunks:"Tap the lens to zoom in, tap the stream value to try False, then set it back to True. The check answer is \"small chunks, as written\".",
+        blank:"Tap the output buffer tank in the hallway.",
+        endline:"Answer why end=\"\" matters: stay on one continuous line.",
+        flush:"Zoom in, then set end to \"\" and flush to True. The check answer is \"push to the screen now\".",
         r1:"Tap the moves in order: Open the stream, Stay on one line, Push it now.", basket:"Drag the parts basket onto the belt end on the desk.",
         join:"Zoom in, drag the chunks into slots 0–5 in sentence order (Your, order, is, on, the, way.), then tap the separator so it becomes \"\".",
         cut:"Tap the \"Delivered ✓\" board: it's lying, the reply isn't finished.", finish:"Zoom in and tap the finish value to try each option. For the check, pick \"partial\".",
         jam:"Tap the jammed gate (the IndexError) to see what got stuck.", guard:"Zoom in and drag the two guards into gate 1 and gate 2 (choices check first, then the piece check). The check answer is \"usage meter\".",
         r2:"Tap the seven moves in order, 1 to 7."})[beat];
     }
-    if (s === "assign") return state.asStep <= 3 ? `Pick the "${ASSIGN_EVENTS[state.asStep].correct}" tile.` : state.asStep === 4 ? "Press Add range check, then See the board." : "Press Continue to Predictions.";
-    if (s === "pred") { const p = PRED[state.predI]; return state.predPhase === "q" ? `Option ${"ABCD"[p.correct]}: "${p.ops[p.correct]}" ${p.why}` : "Press Next prediction (or Continue)."; }
+    if (s === "assign") {
+      if (state.asStep < 4 && typeof ASSIGN_SCENARIOS !== "undefined") {
+        const sc = ASSIGN_SCENARIOS[state.asStep];
+        const right = sc.ops.find(o => o.ok);
+        return `Scenario ${sc.id}: pick "${right ? right.t : "the honest option"}". ${sc.why}`;
+      }
+      return "Press Continue to Predictions.";
+    }
+    if (s === "pred") {
+      const p = PRED[state.predI];
+      if (state.predPhase === "teach") return "Read how the code path works, then press \"I understand — predict\".";
+      return state.predPhase === "q" ? `Option ${"ABCD"[p.correct]}: "${p.ops[p.correct]}" ${p.why}` : "Press Next prediction (or Continue).";
+    }
     if (s === "code") return state.codeTier === "micro" ? "Order: for chunk in stream → inside it: if not chunk.get(\"choices\") → (inside) usage = chunk.get(\"usage\") and continue → choice = chunk[\"choices\"][0] → piece = choice[\"delta\"].get(\"content\") → if piece: → (inside) print(piece, end=\"\", flush=True) and parts.append(piece) → if choice.get(\"finish_reason\"): → (inside) finish = choice[\"finish_reason\"] → back outside the loop: text = \"\".join(parts). Leave out yield, plain print and the extra finish line."
       : state.codeTier === "guided" ? "Press \"Fix status after the loop\", then Check." : "Choose complete when: finish == \"stop\", then press Run / Check.";
     if (s === "debug") { const b = BUGS[state.bugI]; return state.bugPhase === "find" ? `Tap line ${b.badLines.join(" or ")} in the code.` : state.bugPhase === "choose" ? `Pick the fix: "${b.fixes.find(f => f.ok).t.replace(/`/g, "")}".` : "Press Next bug (or Continue)."; }
