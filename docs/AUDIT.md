@@ -215,3 +215,35 @@
 - `qa-py-04-mastery-editor.png` / `qa-py-05-mastery-passed.png` — Mastery real run
 - `qa-py-06-indep-mobile.png` — mobile Python UI
 - `qa-01`…`qa-12` — stage + responsive sweep
+
+---
+
+## QA checklist (responsive + Guided real Python)
+
+**Date:** 2026-11-18 · Follow-up on same branch
+
+### Layout
+| Check | Result |
+|-------|--------|
+| Replaced `lm-phone` scaled-canvas + swipe | **Done** — fluid layout `<1100px` via `css/responsive.css` |
+| No page-level horizontal scroll at 375 / 414 / 768 / 1024 | Asserted in `qa-full.mjs` / `qa-pyodide.mjs` |
+| Single-column phone; side+main tablet grid | CSS media queries |
+| Body text ≥16px / tap targets ≥44px in fluid | CSS rules |
+| Desktop ≥1100 keeps letterboxed 1280×720 stage | `fit()` + no fluid class |
+| Code editors scroll horizontally only inside blocks | `.code` / `.py-editor` `overflow-x: auto` |
+
+### Code stage execution
+| Tier | Execution |
+|------|-----------|
+| Brief | Teaching only (no Simulated badge) |
+| Micro | Structure check + **real Pyodide** consume on mock stream |
+| Guided | **Real** G1–G4 assertions (usage / None-safe / finish / honest status) |
+| Independent | Real T1–T5 (unchanged) |
+
+**Remaining Simulated elsewhere:** Explore / Predict demos, Mastery live board spectacle, Discovery races — not Code-stage checks. Guided/Micro no longer use Simulated badges.
+
+### Automated
+| Script | Result |
+|--------|--------|
+| `node scripts/qa-full.mjs` | **QA_PASS** |
+| `node scripts/qa-pyodide.mjs` | **QA_PY_PASS** (includes Guided broken→fixed + fluid 375/768) |

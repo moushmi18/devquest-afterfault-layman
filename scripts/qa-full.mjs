@@ -59,16 +59,27 @@ async function overflowCheck(label) {
     const vp = document.getElementById("viewport");
     if (!app || !vp) return { missing: true };
     fit();
-    const r = app.getBoundingClientRect();
-    const v = vp.getBoundingClientRect();
     const bad = [];
-    // Portrait phone mode intentionally pans a wider canvas (swipe). Skip frame overflow there.
-    if (!document.body.classList.contains("lm-phone")) {
-      if (r.right > v.right + 24 || r.bottom > v.bottom + 24 || r.left < v.left - 24) {
-        bad.push(`app-frame@${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.right)},${Math.round(r.bottom)} vp=${Math.round(v.width)}x${Math.round(v.height)}`);
-      }
+    const docEl = document.documentElement;
+    const sw = Math.max(docEl.scrollWidth, document.body.scrollWidth);
+    const cw = docEl.clientWidth;
+    // True fluid layout must not create page-level horizontal scroll.
+    if (document.body.classList.contains("fluid") && sw > cw + 2) {
+      bad.push(`h-scroll page ${sw}>${cw} fluid=${document.body.classList.contains("fluid")}`);
     }
-    return { w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, phone: document.body.classList.contains("lm-phone"), bad: bad.slice(0, 8) };
+    if (document.body.classList.contains("lm-phone")) {
+      bad.push("lm-phone still active — scaled pan layout should be gone");
+    }
+    return {
+      w: app.getBoundingClientRect().width,
+      h: app.getBoundingClientRect().height,
+      vw: window.innerWidth,
+      vh: window.innerHeight,
+      fluid: document.body.classList.contains("fluid"),
+      scrollWidth: sw,
+      clientWidth: cw,
+      bad: bad.slice(0, 8),
+    };
   });
   if (o.bad && o.bad.length) issues.push(`overflow ${label}: ${o.bad.join(" | ")}`);
   return o;
@@ -203,21 +214,41 @@ try {
       { bid: "join", depth: 0 },
     ];
     state.dd.slots = { usage: '"usage"', piece: '"content"', flush: "True", join: '""' };
-    const r = ddCheck();
-    state.dd.result = r;
-    state.dd.solved = !!r.ok;
+    state.microPy = null;
+    state.dd.solved = false;
     render();
     document.querySelectorAll(".lm-veil").forEach(v => v.remove());
   });
-  const microOk = await page.evaluate(() => state.dd.solved);
-  if (!microOk) issues.push("Micro auto-solve failed: " + JSON.stringify(await page.evaluate(() => state.dd.result)));
+  await clickTid("micro-run");
+  await page.waitForFunction(() => state.dd.solved === true || (state.microPy && state.microPy.ok === false), { timeout: 90000 });
+  const microOk = await page.evaluate(() => ({ solved: state.dd.solved, microPy: state.microPy, structural: state.dd.result }));
+  if (!microOk.solved) issues.push("Micro real Python failed: " + JSON.stringify(microOk));
   await clickTid("to-guided");
-  await clickAct("guided-set"); // may click first wrong - need specific
+  // Broken status should fail G4 under real Python
+  await page.evaluate(() => {
+    state.guidedChoice = '"complete"';
+    state.guidedFixed = false;
+    state.guidedStates = null;
+    render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+  });
+  await clickTid("guided-check");
+  await page.waitForFunction(() => state.guidedChecked && state.guidedStates && state.guidedStates.every(s => s !== "pend"), { timeout: 90000 });
+  const brokenGuided = await page.evaluate(() => ({ fixed: state.guidedFixed, states: state.guidedStates }));
+  if (brokenGuided.fixed) issues.push("Guided marked fixed with hard-coded complete");
+  if (brokenGuided.states && brokenGuided.states[3] === "pass") issues.push("Guided G4 passed with broken status");
   await page.evaluate(() => {
     [...document.querySelectorAll("[data-act=guided-set]")].find(b => b.dataset.c === "honest_status(error, finish)")?.click();
   });
-  await new Promise(r => setTimeout(r, 200));
-  if (!(await page.evaluate(() => state.guidedFixed))) issues.push("Guided fix did not stick");
+  await clickTid("guided-check");
+  await page.waitForFunction(() => state.guidedFixed === true, { timeout: 90000 });
+  await shot("qa-07b-guided-real.png");
+  if (!(await page.evaluate(() => state.guidedFixed && state.guidedStates?.every(s => s === "pass")))) {
+    issues.push("Guided real Python did not fully pass after honest_status");
+  }
+  // Code stage should not show Simulated badge on Guided
+  const simOnGuided = await page.evaluate(() => !!document.querySelector(".main .sim-badge"));
+  if (simOnGuided) issues.push("Guided still shows Simulated badge");
   await clickAct("to-indep");
   await page.evaluate(() => {
     state.pySrc = CONSUME_TEMPLATE;
@@ -290,15 +321,29 @@ try {
   await clickTid("boss-report");
   await shot("qa-10-mastery-report.png");
 
-  // Responsive
-  for (const [w, h, name] of [[768, 1024, "tablet"], [375, 812, "mobile"]]) {
+  // Responsive — true fluid (no lm-phone), no page horizontal scroll
+  for (const [w, h, name] of [[1024, 768, "laptop"], [768, 1024, "tablet"], [414, 896, "mobile414"], [375, 812, "mobile"]]) {
     await page.setViewport({ width: w, height: h });
-    await page.evaluate(() => { jumpStage(0); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
+    await page.evaluate(() => { jumpStage(0); fit(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
     await shot(`qa-11-disc-${name}.png`);
     await overflowCheck(`disc-${name}`);
-    await page.evaluate(() => { jumpStage(2); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
+    await page.evaluate(() => { jumpStage(2); fit(); document.querySelectorAll(".lm-veil").forEach(v => v.remove()); });
     await shot(`qa-12-assign-${name}.png`);
     await overflowCheck(`assign-${name}`);
+    await page.evaluate(() => {
+      jumpStage(4);
+      state.codeTier = "guided";
+      state.guidedChoice = "honest_status(error, finish)";
+      state.guidedFixed = true;
+      state.guidedStates = GUIDED_TESTS_REAL.map(() => "pass");
+      render();
+      fit();
+      document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    });
+    await overflowCheck(`guided-${name}`);
+    const fluid = await page.evaluate(() => document.body.classList.contains("fluid"));
+    if (w < 1100 && !fluid) issues.push(`expected fluid layout at ${w}`);
+    if (w >= 1100 && fluid) issues.push(`expected stage layout at ${w}`);
   }
 
   // Dead buttons sample

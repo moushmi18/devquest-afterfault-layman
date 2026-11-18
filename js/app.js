@@ -19,8 +19,9 @@ function initialState() {
     asStep:0, asPicked:null, asResolved:false, asHint:0, asScore:0, cliBuilt:false, chats:defaultChats(),
     predI:0, predPhase:"q", predPick:null, predConf:"think so", predResults:[],
     codeTier:"brief", codeWalk:0, slots:{}, selectedTile:null, microWrong:false, microRan:false,
-    hintLevel:0, guidedFixed:false, guidedChecked:false, guidedFails:0,
+    hintLevel:0, guidedFixed:false, guidedChoice:null, guidedChecked:false, guidedFails:0, guidedStates:null, guidedOut:"", guidedErr:null, guidedReal:false,
     indepCond:"text", testStates:null, testsDone:false, pySrc:null, pyReal:false, pyOut:"", pyErr:null, realPass:0,
+    microPy:null,
     bugI:0, bugPhase:"observe", bugToast:null, bugsFixed:0, bugPy:null,
     bossPhase:"challenge", masteryChal:{}, masteryTried:false, masteryHelp:false, masterySrc:null, masteryPy:null, masteryCodeOk:false, masteryConceptsDone:false, p2i:0, p2Pick:null, misses:0, missLog:[], p2Cleared:false, shakeBoss:false,
     unlocked36:false, _xpPop:false, missionDone:false, dd:ddInit(), hub:hubInit(), dq:dqInit(), xq:xqInit(), intro:introInit(),
@@ -52,7 +53,7 @@ function jumpStage(i) {
   if (i===1) { state.xq=xqInit(); state.exStep=0; state.exPlay=0; state.exCheck={}; state.flushOn=false; state.recapOrder=[null,null,null]; state.recapTapped=[]; }
   if (i===2) { state.asStep=0; state.asPicked=null; state.asResolved=false; state.asHint=0; state.asScore=0; state.cliBuilt=false; state.chats=defaultChats(); }
   if (i===3) { state.predI=0; state.predPhase="q"; state.predPick=null; state.predResults=[]; }
-  if (i===4) { state.dd=ddInit(); state.codeTier="brief"; state.codeWalk=0; state.slots={}; state.selectedTile=null; state.microWrong=false; state.microRan=false; state.hintLevel=0; state.guidedFixed=false; state.guidedChecked=false; state.guidedFails=0; state.indepCond="text"; state.testStates=null; state.testsDone=false; state.pySrc=null; state.pyReal=false; state.pyOut=""; state.pyErr=null; state.realPass=0; }
+  if (i===4) { state.dd=ddInit(); state.codeTier="brief"; state.codeWalk=0; state.slots={}; state.selectedTile=null; state.microWrong=false; state.microRan=false; state.hintLevel=0; state.guidedFixed=false; state.guidedChoice=null; state.guidedChecked=false; state.guidedFails=0; state.guidedStates=null; state.guidedOut=""; state.guidedErr=null; state.guidedReal=false; state.indepCond="text"; state.testStates=null; state.testsDone=false; state.pySrc=null; state.pyReal=false; state.pyOut=""; state.pyErr=null; state.realPass=0; state.microPy=null; }
   if (i===5) { state.bugI=0; state.bugPhase="observe"; state.bugToast=null; state.bugsFixed=0; state.bugPy=null; }
   if (i===6) { state.bossPhase="challenge"; state.masteryChal={}; state.masteryTried=false; state.masteryHelp=false; state.masterySrc=null; state.masteryPy=null; state.masteryCodeOk=false; state.masteryConceptsDone=false; state.hearts=3; state.shield=100; state.p2i=0; state.misses=0; state.missLog=[]; state.p2Cleared=false; state.p2Pick=null; }
   render();
@@ -297,7 +298,7 @@ function codehd(tier,title) {
     const i=tiers.indexOf(t), c=tiers.indexOf(tier);
     return chip((i<c?"✓ ":"")+t, t===tier?"dk":(i<c?"grn":"gry"));
   }).join("");
-  const badge = tier === "Independent" ? REAL_BADGE : SIM_BADGE;
+  const badge = tier === "Brief" ? "" : REAL_BADGE;
   return `<div class="hd"><div><div class="kick">Stage 5 · Code · ${tier}</div><h2>${title}</h2></div><div class="sp"></div>${pills}${badge}</div>`;
 }
 function testPanelReal(states) {
@@ -338,26 +339,37 @@ function renderCode() {
     else tip="micro";
     main = ddMain();
   } else if (state.codeTier==="guided") {
-    const steps=[["1","Usage-only chunk doesn't crash; usage stored", "pass"],["2","Output is live and flushed; no \"None\"","pass"],["3","`finish_reason` captured","pass"],["4","Cut → partial · error → error · length → truncated", state.guidedFixed?"pass":(state.guidedChecked?"fail":"pend")]];
-    const sr = steps.map(([n,t,s])=>`<div class="t ${s}"><span class="bx">${s==="pass"?ic("check",12,"#fff"):s==="fail"?ic("x",12,"#fff"):""}</span><b>${n}</b><span>${md(t)}</span></div>`).join("");
-    const src = state.guidedFixed ? GUIDED_SRC.replace('status = "complete"          # Step 4: TODO','status = honest_status(error, finish)') : GUIDED_SRC;
-    const marks = state.guidedFixed ? {14:"good"} : {14:"foc"};
+    const gStates = state.guidedStates;
+    const sr = GUIDED_TESTS_REAL.map((t, i) => {
+      const st = (gStates && gStates[i]) || "pend";
+      return testRow(t.id, t.name, st, false, "");
+    }).join("");
+    const src = guidedSrcFromState();
+    const statusLine = src.split("\n").findIndex(l => l.includes("status =")) + 1;
+    const marks = state.guidedFixed ? { [statusLine]: "good" } : { [statusLine]: "foc" };
     const showFix = state.guidedFails >= 2 && !state.guidedFixed;
+    const npass = gStates ? gStates.filter(s => s === "pass").length : 0;
     const hint = `<div class="card col" style="gap:6px;padding:12px;border-color:#FDE68A;background:#FFFBEB"><div class="row" style="align-items:center">${ic("bulb",18,"#F59E0B")}<b class="pop" style="color:#B45309;margin-left:6px">Coach hints (no answer yet)</b><span class="sp"></span>${btn("Hint","guided-hint","data-testid='hint'","g sm")}</div>
       ${state.hintLevel>=1?`<div class="mini" style="color:#111827"><b>1 · Nudge</b> What did Assign teach about quiet streams?</div>`:""}
       ${state.hintLevel>=2?`<div style="font-size:13.5px;background:#fff;border-radius:10px;padding:7px 9px;border:2px solid #FDE68A"><b>2 · Concept</b> Decide status <em>after</em> the loop from error and finish_reason.</div>`:""}
       ${state.hintLevel>=3?`<div style="font-size:13px"><b>3 · Pointer</b> Replace the hard-coded <code class="inline">"complete"</code> with honest_status(error, finish).</div>`:`<div class="row" style="align-items:center;gap:6px"><span class="mini"><b>3 · Pointer</b></span><span class="chip gry">${ic("lock",10,"#6B7280")} tap Hint</span></div>`}
       ${showFix?`<div class="mini">Still stuck after two checks — last resort:</div>${btn("Reveal fix after loop","fix-status","data-testid='fix-status'","g sm")}`:""}
     </div>`;
-    const term = state.guidedChecked && !state.guidedFixed
-      ? `<div class="term" style="flex:1;padding:8px 12px;font-size:12px"><span class="er">✕ step 4:</span> cut stream → expected status <span class="am">"partial"</span>, got <span class="am">"complete"</span></div>`
-      : (state.guidedFixed?`<div class="term" style="flex:1;padding:8px 12px;font-size:12px"><span class="ok">✓ all 4 guided checks passed</span></div>`:`<div class="term" style="flex:1;padding:8px 12px;font-size:12px"><span class="dim">${SIM_BADGE} Check when ready — edit the idea, don’t one-click first.</span></div>`);
+    const term = state.guidedErr
+      ? `<div class="term" style="flex:1;padding:8px 12px;font-size:12px" data-testid="guided-py-out"><span class="er">✕</span> ${esc(state.guidedErr)}</div>`
+      : (state.guidedFixed
+        ? `<div class="term" style="flex:1;padding:8px 12px;font-size:12px" data-testid="guided-py-out"><span class="ok">✓ all ${GUIDED_TESTS_REAL.length} real Python checks passed</span>${state.guidedOut ? "\n" + esc(state.guidedOut) : ""}</div>`
+        : (state.guidedChecked
+          ? `<div class="term" style="flex:1;padding:8px 12px;font-size:12px" data-testid="guided-py-out"><span class="er">✕ ${npass}/${GUIDED_TESTS_REAL.length}</span> ${esc(state.guidedOut || "Fix status, then re-run.")}</div>`
+          : `<div class="term" style="flex:1;padding:8px 12px;font-size:12px" data-testid="guided-py-out"><span class="dim">${REAL_BADGE} Pick a status line, then Run real Python checks.</span></div>`));
     const edits = !state.guidedFixed ? `<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"><span class="lbl">Set status to</span>
       ${['"complete"',"honest_status(error, finish)",' "partial" if text else "failed"'].map(c=>`<button type="button" class="tile mono" data-act="guided-set" data-c="${esc(c)}" data-testid="guided-set">${esc(c)}</button>`).join("")}</div>` : "";
     main = `<div class="main">${codehd("Guided","Write consume() — honest status")}
-      <div class="row" style="flex:1"><div class="col f1">${codeBlock(src,"line_keeper.py",marks,"sm")}${edits}</div>
-      <div class="col" style="width:350px"><div class="card col" style="gap:5px;padding:12px"><div class="lbl">Guided checks ${SIM_BADGE}</div><div class="tests">${sr}</div></div>${hint}</div></div>
-      <div class="row" style="align-items:center;gap:10px">${term}${btn("Check","guided-check","data-testid='guided-check'","sm")}${state.guidedFixed?btn("Next: Independent "+ic("play",14,"#fff"),"to-indep"):""}</div></div>`;
+      ${pyLoadBar()}
+      <div class="mini" style="margin-bottom:6px">Starter hard-codes <b>complete</b>. Choose the honest status expression, then run real assertions on a mock stream. ${realLabel("")}</div>
+      <div class="row" style="flex:1;min-height:0"><div class="col f1">${codeBlock(src,"line_keeper.py",marks,"sm")}${edits}</div>
+      <div class="col" style="width:350px"><div class="card col" style="gap:5px;padding:12px" data-testid="guided-tests"><div class="row" style="align-items:center"><div class="lbl">Guided checks · real Python</div><span class="sp"></span>${chip(npass+" / "+GUIDED_TESTS_REAL.length, state.guidedFixed?"grn":"gry")}</div><div class="tests">${sr}</div></div>${hint}</div></div>
+      <div class="row" style="align-items:center;gap:10px">${term}${btn(PY.status==="loading"?"Loading…":"Run real Python","guided-check","data-testid='guided-check'", PY.status==="loading"?"dis":"sm")}${state.guidedFixed?btn("Next: Independent "+ic("play",14,"#fff"),"to-indep"):""}</div></div>`;
     tip = state.guidedFixed?"guidedOk":"guided";
   } else {
     if (state.pySrc == null) state.pySrc = CONSUME_BROKEN_STATUS;
@@ -648,13 +660,36 @@ function render() {
   fit();
 }
 
+function useFluidLayout() {
+  return typeof window !== "undefined" && window.innerWidth < 1100;
+}
+
 function fit() {
   const vp = document.getElementById("viewport");
   const app = document.getElementById("app");
   if (!vp || !app) return;
+  const fluid = useFluidLayout();
+  document.documentElement.classList.toggle("fluid", fluid);
+  document.body.classList.toggle("fluid", fluid);
+  document.body.classList.remove("lm-phone");
+  app.classList.toggle("fluid", fluid);
+
   const pt = app.classList.contains("portrait");
   const want = isHubScene() && hubPortrait();
   if (pt !== want) { render(); return; }
+
+  if (fluid) {
+    app.style.transform = "";
+    app.style.left = "";
+    app.style.top = "";
+    app.style.transformOrigin = "";
+    return;
+  }
+
+  // Desktop stage: keep letterboxed 1280×720 (or hub portrait 400×780)
+  app.style.left = "50%";
+  app.style.top = "50%";
+  app.style.transformOrigin = "center center";
   const W = pt ? 400 : 1280, H = pt ? 780 : 720;
   const s = Math.min(vp.clientWidth / W, vp.clientHeight / H);
   app.style.transform = `translate(-50%,-50%) scale(${Math.max(0.2, s)})`;
@@ -685,6 +720,114 @@ function playExplore() {
 function syncPyEditor(sel, key) {
   const el = document.querySelector(sel);
   if (el && typeof el.value === "string") state[key] = el.value;
+}
+
+async function runGuidedTests() {
+  state.guidedChecked = true;
+  state.guidedStates = GUIDED_TESTS_REAL.map(() => "pend");
+  state.guidedOut = "";
+  state.guidedErr = null;
+  state.guidedReal = false;
+  render();
+  try {
+    await pyEnsure(() => render());
+  } catch (e) {
+    state.guidedErr = "Pyodide unavailable — " + ((e && e.message) || e);
+    state.guidedStates = GUIDED_TESTS_REAL.map(() => "fail");
+    state.guidedFails = (state.guidedFails || 0) + 1;
+    render();
+    return;
+  }
+  const src = guidedSrcFromState();
+  let pass = 0;
+  const hints = [];
+  for (let i = 0; i < GUIDED_TESTS_REAL.length; i++) {
+    const t = GUIDED_TESTS_REAL[i];
+    let ok = false;
+    try {
+      if (t.kind === "multi" && typeof t.check === "function") {
+        const multi = await t.check(src);
+        ok = !!multi.ok;
+        if (i === 0 || !state.guidedOut) state.guidedOut = multi.detail || multi.stdout || "";
+        if (!ok) hints.push(t.id + ": " + (multi.detail || t.failHint));
+      } else {
+        const r = await pyRunConsume(src, t.kind);
+        ok = !!t.check(r);
+        if (i === 0) state.guidedOut = r.stdout || "";
+        if (!ok) hints.push(t.id + ": " + (t.failHint || r.error || "failed"));
+      }
+    } catch (e) {
+      ok = false;
+      hints.push(t.id + ": " + ((e && e.message) || e));
+    }
+    state.guidedStates[i] = ok ? "pass" : "fail";
+    if (ok) pass++;
+    render();
+  }
+  state.guidedReal = true;
+  const all = pass === GUIDED_TESTS_REAL.length;
+  state.guidedFixed = all;
+  if (all) {
+    state.guidedErr = null;
+    state.guidedOut = "All guided checks green on mock streams.";
+  } else {
+    state.guidedFails = (state.guidedFails || 0) + 1;
+    state.guidedErr = hints[hints.length - 1] || "Some guided checks failed.";
+  }
+  render();
+}
+
+async function runMicroPython() {
+  state.microPy = null;
+  const structural = ddCheck();
+  state.dd.result = structural;
+  if (!structural.ok) {
+    state.dd.solved = false;
+    render();
+    return;
+  }
+  render();
+  try {
+    await pyEnsure(() => render());
+  } catch (e) {
+    state.microPy = { ok: false, summary: "Pyodide unavailable — " + ((e && e.message) || e) };
+    state.dd.solved = false;
+    render();
+    return;
+  }
+  const src = ddConsumeSrc();
+  try {
+    const normal = await pyRunConsume(src, "normal");
+    const none = await pyRunConsume(src, "none_content");
+    const usage = await pyRunConsume(src, "usage_jam");
+    const ok =
+      normal.ok && normal.result && normal.result.status === "complete" && (normal.result.text || "").includes("way") &&
+      none.ok && !(none.stdout || "").includes("None") &&
+      usage.ok && usage.result && usage.result.usage;
+    if (ok) {
+      state.dd.solved = true;
+      state.microPy = {
+        ok: true,
+        stdout: normal.stdout || "",
+        summary: `status=${normal.result.status} · finish=${normal.result.finish_reason} · usage ok`,
+      };
+    } else {
+      state.dd.solved = false;
+      state.microPy = {
+        ok: false,
+        summary: !normal.ok
+          ? ("Crash: " + (normal.error || "run failed"))
+          : `Structure OK but runtime failed — status=${normal.result && normal.result.status}, none_safe=${none.ok && !(none.stdout || "").includes("None")}, usage=${!!(usage.result && usage.result.usage)}`,
+        stdout: normal.stdout || "",
+      };
+      state.dd.result = { ok: false, title: "Runtime check failed", msg: state.microPy.summary, bad: [] };
+    }
+  } catch (e) {
+    state.dd.solved = false;
+    state.microPy = { ok: false, summary: (e && e.message) || String(e) };
+    state.dd.result = { ok: false, title: "Runtime error", msg: state.microPy.summary, bad: [] };
+  }
+  render();
 }
 
 async function runIndepTests() {
@@ -821,8 +964,8 @@ function onClick(e) {
   if (act.startsWith("dq-") && dqAct(act, t)) return;
   if (act.startsWith("x-") && xAct(act, t)) return;
   if (act.startsWith("intro-") && introAct(act)) return;
-  if (act==="dd-reset") { state.dd=ddInit(); render(); return; }
-  if (act==="dd-run") { const r=ddCheck(); state.dd.result=r; if (r.ok) state.dd.solved=true; render(); return; }
+  if (act==="dd-reset") { state.dd=ddInit(); state.microPy=null; render(); return; }
+  if (act==="dd-run") { runMicroPython(); return; }
   if (act==="toggle-ai") { state.aiOn = !state.aiOn; render(); return; }
   if (act==="toggle-theme") { state.dark = !state.dark; render(); return; }
   if (act==="jump-stage") { jumpStage(+t.dataset.i); return; }
@@ -936,17 +1079,27 @@ function onClick(e) {
   if (act==="to-guided") { state.codeTier="guided"; render(); return; }
   if (act==="guided-hint") { state.hintLevel=Math.min(3,state.hintLevel+1); render(); return; }
   if (act==="guided-set") {
-    const c = t.dataset.c;
-    if (c === "honest_status(error, finish)") { state.guidedFixed = true; state.guidedChecked = true; }
-    else { state.guidedFixed = false; state.guidedChecked = true; state.guidedFails = (state.guidedFails || 0) + 1; }
+    state.guidedChoice = t.dataset.c;
+    state.guidedFixed = false;
+    state.guidedChecked = false;
+    state.guidedStates = null;
+    state.guidedOut = "";
+    state.guidedErr = null;
+    state.guidedReal = false;
     render(); return;
   }
-  if (act==="fix-status") { state.guidedFixed=true; state.guidedChecked=true; render(); return; }
-  if (act==="guided-check") {
-    state.guidedChecked = true;
-    if (!state.guidedFixed) state.guidedFails = (state.guidedFails || 0) + 1;
-    render(); return;
+  if (act==="fix-status") {
+    state.guidedChoice = "honest_status(error, finish)";
+    state.guidedFixed = false;
+    state.guidedChecked = false;
+    state.guidedStates = null;
+    state.guidedOut = "";
+    state.guidedErr = null;
+    render();
+    runGuidedTests();
+    return;
   }
+  if (act==="guided-check") { if (PY.status==="loading") return; runGuidedTests(); return; }
   if (act==="to-indep") { state.codeTier="indep"; render(); return; }
   if (act==="indep-cond") { clearT(); state.indepCond=t.dataset.c; state.testStates=null; state.testsDone=false; render(); return; }
   if (act==="indep-check") { if (PY.status==="loading") return; runIndepTests(); return; }

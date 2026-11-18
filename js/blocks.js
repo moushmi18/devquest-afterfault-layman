@@ -103,26 +103,42 @@ function ddPython() {
   return codeBlock(rows.join("\n"), "line_keeper.py · live Python", marks, "xs dd-py");
 }
 
+/** Full runnable consume() from the block editor (for Pyodide). */
+function ddConsumeSrc() {
+  const L = state.dd.lines;
+  const body = L.map(l =>
+    "    ".repeat(l.depth + 1) + DD_BLOCKS[l.bid].src.replace(/@(\w+)/g, (_, s) => state.dd.slots[s] != null ? state.dd.slots[s] : "___")
+  ).join("\n");
+  return `import sys
+def consume(stream, out=sys.stdout):
+${body}
+    status = "complete" if finish == "stop" else ("truncated" if finish == "length" else ("partial" if finish is None else "partial"))
+    return {"text": text, "finish_reason": finish, "usage": usage, "status": status, "error": None}
+`;
+}
+
 function ddMain() {
   const d = state.dd, r = d.result;
   const placed = DD_REQUIRED.filter(ddUsed).length;
   const pills = DD_PILLS.map(v => `<span class="ddp${d.pick===v?" pk":""}" data-v="${esc(v)}" tabindex="0" role="button" aria-label="value ${esc(v)}" data-testid="pill-${ddPillName(v)}">${esc(v)}</span>`).join("");
   let right, foot;
+  const mp = state.microPy;
   if (d.solved) {
-    right = `<div class="term" style="font-size:12.5px"><span class="dim">$ run micro_line_keeper</span>
-Your order is on the way.
-<span class="ok">✓ streamed live · 6 pieces</span>
-<span class="ok">✓ finish_reason: stop</span>
-<span class="ok">✓ usage: 12 / 7 / 19</span></div>`;
-    foot = `${fb("ok","Line Keeper built.", r && r.alt ? "Your order is one of the valid ones." : "Blocks in a valid order.").replace('class="fb ok"','class="fb ok" style="flex:1"')}${chip("Accepts more than one valid order","grn")}${btn("Next: Guided "+ic("play",14,"#fff"),"to-guided","data-testid='to-guided'")}`;
+    right = `<div class="term" style="font-size:12.5px" data-testid="micro-py-out"><span class="dim">$ real Python · mock stream</span>
+${esc((mp && mp.stdout) || "Your order is on the way.")}
+<span class="ok">✓ ${esc((mp && mp.summary) || "streamed live · finish stop · usage kept")}</span></div>`;
+    foot = `${fb("ok","Line Keeper built — real Python passed.", r && r.alt ? "Your order is one of the valid ones." : "Blocks in a valid order.").replace('class="fb ok"','class="fb ok" style="flex:1"')}${chip("Accepts more than one valid order","grn")}${btn("Next: Guided "+ic("play",14,"#fff"),"to-guided","data-testid='to-guided'")}`;
   } else {
-    right = `<div class="card dd-pills"><div class="lbl">Values · drag into a slot</div><div class="wrapt" style="gap:6px">${pills}</div></div>`;
+    right = `<div class="card dd-pills"><div class="lbl">Values · drag into a slot</div><div class="wrapt" style="gap:6px">${pills}</div></div>
+      ${mp && mp.summary ? `<div class="py-out ${mp.ok?"":"err"}" data-testid="micro-py-out">${esc(mp.summary)}</div>` : ""}`;
     const status = r && !r.ok
       ? fb("bad", r.title, r.msg).replace('class="fb bad"','class="fb bad" data-testid="dd-feedback" style="flex:1;padding:7px 12px"')
-      : `<div class="mini" style="flex:1">Drag right to nest under a loop or if. Drag back to the palette to remove. Keyboard: Enter adds, arrows move, Delete removes.</div>`;
-    foot = `${status}${chip(placed+" / "+DD_REQUIRED.length+" blocks","gry")}${btn("Reset","dd-reset","data-testid='dd-reset'","g sm")}${btn(ic("play",14,"#fff")+" Run","dd-run","data-testid='micro-run'","sm")}`;
+      : `<div class="mini" style="flex:1">Drag right to nest under a loop or if. Keyboard: Enter adds, arrows move, Delete removes. Run checks structure, then real Python on a mock stream.</div>`;
+    foot = `${status}${chip(placed+" / "+DD_REQUIRED.length+" blocks","gry")}${btn("Reset","dd-reset","data-testid='dd-reset'","g sm")}${btn(PY.status==="loading"?"Loading…":ic("play",14,"#fff")+" Run real Python","dd-run","data-testid='micro-run'", PY.status==="loading"?"dis":"sm")}`;
   }
   return `<div class="main">${codehd("Micro","Build the Line Keeper")}
+    ${pyLoadBar()}
+    <div class="mini" style="margin-bottom:4px">${realLabel("Structure check, then live consume() on a mock stream")}</div>
     <div class="dd" data-testid="dd">
       <div class="card dd-pal" data-testid="dd-palette"><div class="lbl">Blocks · drag into the editor</div><div class="dd-list">${ddPalette()}</div></div>
       <div class="card dd-ws" data-testid="dd-workspace"><div class="lbl" style="display:flex;gap:8px;align-items:center">Editor<span class="sp"></span>${chip("loop")}${chip("decision","amb")}${chip("action","gry")}</div><div class="dd-lines">${ddLines()}</div></div>

@@ -7,7 +7,7 @@ DevQuest Afterfault, Mission 3.5 "The Unfinished Line" is a concept-driven codin
 
 Pedagogy notes: `docs/AUDIT.md`, redesign: `docs/REDESIGN.md`.
 
-**Execution honesty:** Explore/Predict demos are **simulated** (labelled). Code · Independent, Debug runs, and Mastery use **real Python in the browser via Pyodide** against a **mock OpenAI-style stream** (no API key). Pyodide loads lazily from jsDelivr; if load fails, the UI shows an error and Retry.
+**Execution honesty:** Explore/Predict demos are **simulated** (labelled). Code · Micro, Guided, Independent, plus Debug runs and Mastery, use **real Python in the browser via Pyodide** against a **mock OpenAI-style stream** (no API key). Below 1100px the UI is a true fluid layout (not a scaled canvas). Pyodide loads lazily from jsDelivr; if load fails, the UI shows an error and Retry.
 
 ## Educational redesign (streaming-first)
 - **Discovery** teaches what/why/how, terms, and a side-by-side comparison before any challenge.

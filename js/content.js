@@ -219,22 +219,41 @@ const MICRO = [
 const MICRO_ANS = {1:'"usage"',2:'"content"',3:'""',4:'True',5:'append',6:'""'};
 const MICRO_BANK = ['"usage"','"tokens"','"content"','"text"','"role"','""','"\\n"','True','False','append','+=','" "','"[DONE]"'];
 
-const GUIDED_SRC = `def consume(stream, out=sys.stdout):
-    parts, finish, usage = [], None, None
-    for chunk in stream:
-        if not chunk.get("choices"):
-            usage = chunk.get("usage")
-            continue
-        choice = chunk["choices"][0]
-        piece = choice["delta"].get("content")
-        if piece:
-            print(piece, end="", flush=True, file=out)
-            parts.append(piece)
-        if choice.get("finish_reason"):
-            finish = choice["finish_reason"]
-    status = "complete"          # Step 4: TODO
+const GUIDED_SRC = `import sys
+
+def honest_status(error, finish):
+    if error:
+        return "error"
+    if finish == "length":
+        return "truncated"
+    if finish == "stop":
+        return "complete"
+    return "partial"
+
+def consume(stream, out=sys.stdout):
+    parts, finish, usage, error = [], None, None, None
+    try:
+        for chunk in stream:
+            if not chunk.get("choices"):
+                usage = chunk.get("usage")
+                continue
+            choice = chunk["choices"][0]
+            piece = choice["delta"].get("content")
+            if piece:
+                print(piece, end="", flush=True, file=out)
+                parts.append(piece)
+            if choice.get("finish_reason"):
+                finish = choice["finish_reason"]
+    except ConnectionError as exc:
+        error = str(exc)
+    status = "complete"          # Step 4: TODO — ignore finish/error
     return {"text": "".join(parts), "finish_reason": finish,
-            "usage": usage, "status": status, "error": None}`;
+            "usage": usage, "status": status, "error": error}`;
+
+const GUIDED_SRC_FIXED = GUIDED_SRC.replace(
+  'status = "complete"          # Step 4: TODO — ignore finish/error',
+  "status = honest_status(error, finish)"
+);
 
 const INDEP_SRC = (cond) => `def consume(stream, out=sys.stdout):
     parts, finish, usage, error = [], None, None, None

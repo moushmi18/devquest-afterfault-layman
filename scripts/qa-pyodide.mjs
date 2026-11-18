@@ -56,6 +56,33 @@ try {
   if (indep.brokenStates.find(t => t.id === "T3")?.pass) issues.push("Broken status incorrectly passes T3");
   if (!indep.goodStates.every(t => t.pass)) issues.push("Good template failed: " + JSON.stringify(indep.goodStates.filter(t => !t.pass)));
 
+  // Guided real Python — broken then fixed
+  await page.evaluate(() => {
+    jumpStage(4);
+    state.codeTier = "guided";
+    state.guidedChoice = '"complete"';
+    state.guidedFixed = false;
+    state.guidedStates = null;
+    render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+  });
+  await shot("qa-py-00-guided-broken.png");
+  await page.click("[data-testid=guided-check]");
+  await page.waitForFunction(() => state.guidedChecked && state.guidedStates && state.guidedStates.every(s => s !== "pend"), { timeout: 90000 });
+  const gBroken = await page.evaluate(() => state.guidedStates);
+  if (gBroken[3] === "pass") issues.push("Guided G4 should fail on hard-coded complete");
+  await page.evaluate(() => {
+    state.guidedChoice = "honest_status(error, finish)";
+    state.guidedFixed = false;
+    state.guidedStates = null;
+    render();
+    document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+  });
+  await page.click("[data-testid=guided-check]");
+  await page.waitForFunction(() => state.guidedFixed === true, { timeout: 90000 });
+  await shot("qa-py-00b-guided-passed.png");
+  if (!(await page.evaluate(() => state.guidedStates?.every(s => s === "pass")))) issues.push("Guided fixed did not pass all G*");
+
   // UI run with template
   await page.evaluate(() => {
     jumpStage(4);
@@ -98,7 +125,36 @@ try {
   const mOk = await page.evaluate(() => state.masteryCodeOk);
   if (!mOk) issues.push("Mastery code did not pass with template");
 
-  // Mobile screenshot of python output (Independent, after a real run)
+  // Fluid mobile / tablet — no page horizontal scroll; guided visible
+  for (const [w, h, name] of [[375, 812, "mobile"], [768, 1024, "tablet"]]) {
+    await page.setViewport({ width: w, height: h });
+    await page.evaluate(() => {
+      jumpStage(4);
+      state.codeTier = "guided";
+      state.guidedChoice = "honest_status(error, finish)";
+      state.guidedFixed = true;
+      state.guidedStates = GUIDED_TESTS_REAL.map(() => "pass");
+      state.guidedOut = "All guided checks green on mock streams.";
+      render();
+      fit();
+      document.querySelectorAll(".lm-veil").forEach(v => v.remove());
+    });
+    await shot(`qa-py-06-guided-${name}.png`);
+    const ov = await page.evaluate(() => {
+      fit();
+      return {
+        fluid: document.body.classList.contains("fluid"),
+        lmPhone: document.body.classList.contains("lm-phone"),
+        sw: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+        cw: document.documentElement.clientWidth,
+      };
+    });
+    if (!ov.fluid) issues.push(`${name} not fluid`);
+    if (ov.lmPhone) issues.push(`${name} still lm-phone`);
+    if (ov.sw > ov.cw + 2) issues.push(`${name} horizontal overflow ${ov.sw}>${ov.cw}`);
+  }
+
+  // Independent mobile
   await page.setViewport({ width: 375, height: 812 });
   await page.evaluate(() => {
     jumpStage(4);

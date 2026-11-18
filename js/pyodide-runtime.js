@@ -198,6 +198,57 @@ const INDEP_TESTS_REAL = [
   { id: "T5", name: "length → truncated", kind: "length", check: (r) => r.ok && r.result && r.result.status === "truncated" },
 ];
 
+const GUIDED_TESTS_REAL = [
+  {
+    id: "G1",
+    name: "Usage-only chunk safe · usage kept",
+    kind: "usage_jam",
+    check: (r) => r.ok && r.result && r.result.usage && r.result.usage.total_tokens === 19,
+    failHint: "Guard usage-only chunks (empty choices) and store usage — don’t crash on choices[0].",
+  },
+  {
+    id: "G2",
+    name: "Live print · no literal None",
+    kind: "none_content",
+    check: (r) => r.ok && r.result && (r.result.text || "").includes("way") && !(r.stdout || "").includes("None"),
+    failHint: "Use .get(\"content\") and only print when piece is truthy.",
+  },
+  {
+    id: "G3",
+    name: "finish_reason captured on stop",
+    kind: "normal",
+    check: (r) => r.ok && r.result && r.result.finish_reason === "stop",
+    failHint: "Store choice.get(\"finish_reason\") when it appears.",
+  },
+  {
+    id: "G4",
+    name: "Honest status: partial / error / truncated",
+    kind: "multi",
+    check: async (src) => {
+      const partial = await pyRunConsume(src, "partial");
+      const err = await pyRunConsume(src, "error");
+      const len = await pyRunConsume(src, "length");
+      const ok =
+        partial.ok && partial.result && partial.result.status === "partial" &&
+        err.ok && err.result && err.result.status === "error" &&
+        len.ok && len.result && len.result.status === "truncated";
+      return {
+        ok,
+        detail: ok
+          ? "partial / error / truncated all honest"
+          : `got partial=${partial.result && partial.result.status}, error=${err.result && err.result.status}, length=${len.result && len.result.status}`,
+        stdout: partial.stdout || "",
+      };
+    },
+    failHint: "After the loop: status = honest_status(error, finish) — never hard-code complete.",
+  },
+];
+
+function guidedSrcFromState() {
+  if (state.guidedChoice === "honest_status(error, finish)" || state.guidedFixed) return GUIDED_SRC_FIXED;
+  return GUIDED_SRC;
+}
+
 const CONSUME_TEMPLATE = `import sys
 
 def honest_status(error, finish):
