@@ -13,8 +13,8 @@ Object.assign(ICONS, {
 });
 const W6 = ["Your ","order ","is ","on ","the ","way."];
 const XV_OPTS = { stream:["False","True"], end:['"\\n"','""'], flush:["False","True"], sep:['" "','""'], fin:["None",'"length"','"stop"'] };
-function dqInit() { return { step:0, raced:false, raceDone:false, racePick:null, pulls:0, flagged:false, suspect:null, wrong:0, checkPick:null }; }
-function xqInit() { return { beat:0, zoom:false, zoomAnim:false, v:{stream:"False", end:'"\\n"', flush:"False", sep:'" "', fin:"None"}, tried:{}, check:{}, basket:false, parts:[null,null,null,null,null,null], gates:{g1:null,g2:null}, lie:false, bin:false, jam:false, r1:[], r2:[], rWrong:null, done:{}, taught:{} }; }
+function dqInit() { return { step:0, raced:false, raceDone:false, racePick:null, pulls:0, flagged:false, suspect:null, wrong:0 }; }
+function xqInit() { return { beat:0, zoom:false, zoomAnim:false, v:{stream:"False", end:'"\\n"', flush:"False", sep:'" "', fin:"None"}, tried:{}, check:{}, basket:false, parts:[null,null,null,null,null,null], gates:{g1:null,g2:null}, lie:false, bin:false, jam:false, r1:[], r2:[], rWrong:null, done:{} }; }
 let xTimer = null;
 function xClear() { if (xTimer) { clearTimeout(xTimer); xTimer = null; } }
 
@@ -109,36 +109,6 @@ function xCheck(key, q, ops, correct, unlocked) {
 }
 
 /* ================= DISCOVERY ================= */
-function discLearn() {
-  const terms = DISC_TEACH.terms.map(([k,v]) => `<div class="term-pill"><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join("");
-  const roadmap = (DISC_TEACH.sections || []).map(([k,v]) => `<div class="sec-pill"><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join("");
-  return `<div class="xstage disc learn">
-    <div class="learn-hero compact">
-      <div class="learn-kicker">${ic("wave",16,"#fff")} Topic · Streaming Responses</div>
-      <h3>${esc(DISC_TEACH.title)}</h3>
-      <p>${DISC_TEACH.lead}</p>
-    </div>
-    <div class="learn-grid">
-      <div class="learn-card"><i>What</i><p>${DISC_TEACH.what}</p></div>
-      <div class="learn-card"><i>Why (perceived speed)</i><p>${DISC_TEACH.why}</p></div>
-      <div class="learn-card"><i>How</i><p>${DISC_TEACH.how}</p></div>
-    </div>
-    <div class="row" style="gap:10px;align-items:stretch">
-      <div class="learn-card f1"><i>Streaming vs non-streaming</i>
-        <div class="compare">
-          <div class="cmp"><b>Non-streaming</b><span class="mini">Wait → whole reply</span><div class="b bot dimmy">${ic("spin",14)} …then all at once</div></div>
-          <div class="cmp on"><b>Streaming</b><span class="mini">Words as they arrive</span><div class="b bot">Your order is on<span class="caret"></span></div></div>
-        </div>
-        <p class="mini" style="margin-top:6px">${esc(DISC_TEACH.real)}</p>
-      </div>
-      <div class="learn-card f1"><i>Technical sketch · OpenAI-style</i>${simLabel("Illustrative")}
-        ${codeBlock(DISC_TEACH.tech, "stream_chat.py · idea", {}, "xs")}
-      </div>
-    </div>
-    <div class="learn-card"><i>Mission map · seven sections</i><div class="sec-row">${roadmap}</div></div>
-    <div class="terms-row compact">${terms}</div>
-  </div>`;
-}
 function discRace() {
   const d = state.dq;
   const anim = d.raced && !d.raceDone;
@@ -153,12 +123,11 @@ function discRace() {
   const bodyB = !d.raced ? "" : `<div class="b bot">${wordsB}${anim?'<span class="caret"></span>':""}</div>`;
   const after = pick ? `<div class="xreveal">${ic("flag",18,"#F59E0B")}<b>Same finish line.</b> B just started 3 s sooner.</div>` : fin ? `<div class="xprompt">${ic("eye",16,"#7C3AED")}Tap the bot that <b>felt</b> faster</div>` : "";
   return `<div class="xstage disc">
-    <div class="xana">${ic("chat",16,"#fff")} Same question · compare when the full reply finishes vs when words start</div>
-    <p class="mini" style="text-align:center;margin:0 0 6px">Gen Z reality check: you care that the <b>whole</b> answer arrives correctly. Streaming also helps by showing the first words sooner — we’ll use both ideas.</p>
+    <div class="xana">${ic("chat",16,"#fff")} Like ChatGPT typing as it thinks</div>
     <div class="row" style="gap:28px;justify-content:center;align-items:stretch;flex:1;padding:6px 0">
-      ${phone("a","Assistant A · all at once","clock",bodyA)}
+      ${phone("a","Bot A · all at once","clock",bodyA)}
       <div class="xvs">VS</div>
-      ${phone("b","Assistant B · live stream","wave",bodyB)}
+      ${phone("b","Bot B · live","wave",bodyB)}
     </div>
     <div class="row" style="justify-content:center;align-items:center;gap:12px;min-height:46px">${!d.raced ? btn(ic("play",16,"#fff")+" Send to both","dq-race","data-testid='dq-race'") : after}</div>
   </div>`;
@@ -167,87 +136,56 @@ function discFreeze() {
   const d = state.dq, n = Math.min(d.pulls, 5), cut = d.pulls >= 5;
   const words = W6.slice(0, n).map((w,i)=>`<span class="wd" style="opacity:1;${i===n-1?"animation:wdPop .3s":""}">${w}</span>`).join("");
   return `<div class="xstage disc freeze ${cut?"cut":""}">
-    ${bub("rohan+", cut ? "Hello? It stopped mid-sentence." : "Where is my order?")}
+    ${bub("rohan+", cut ? "Hello? It stopped at 'the'." : "Come on, where's my biryani?")}
     <div class="row" style="flex:1;gap:22px;align-items:center;justify-content:center">
       <button type="button" class="xphone big ${cut?"frozen":""}" data-act="dq-pull" data-testid="dq-pull">
-        <div class="ph-h"><span class="logo-dd">RS</span>Restaurant Support Assistant<span class="sp"></span><span class="st-ok">● live</span></div>
+        <div class="ph-h"><span class="logo-dd">DD</span>Dabba Dash support<span class="sp"></span><span class="st-ok">● live</span></div>
         <div class="b u">Where is my order?</div>
         <div class="b bot">${words}<span class="caret"></span></div>
-        ${cut ? `<div class="xglitch">${ic("glitch",22,"#FCA5A5")}<img src="${ART}ila-face.jpg" alt=""></div>` : `<div class="xtap">${ic("play",14,"#fff")} Tap to pull the next piece of the reply · ${n}/6</div>`}
+        ${cut ? `<div class="xglitch">${ic("glitch",22,"#FCA5A5")}<img src="${ART}ila-face.jpg" alt=""></div>` : `<div class="xtap">${ic("play",14,"#fff")} Tap to pull the next chunk · ${n}/6</div>`}
       </button>
       <div class="col" style="width:300px;gap:12px">
-        <div class="xboard ${d.flagged?"flag":""}"><div class="lbl">Status board · conversation #4412</div>
+        <div class="xboard ${d.flagged?"flag":""}"><div class="lbl">Ops wall · chat #4412</div>
           ${cut ? (d.flagged
             ? `<div class="xbig bad">${ic("x",26,"#fff")} Not finished</div>`
-            : `<button type="button" class="xbig ok" data-act="dq-flag" data-testid="dq-flag">${ic("check",26,"#fff")} Delivered ✓<span>tap if this label is lying</span></button>`)
+            : `<button type="button" class="xbig ok" data-act="dq-flag" data-testid="dq-flag">${ic("check",26,"#fff")} Delivered ✓<span>tap if it's lying</span></button>`)
             : `<div class="xbig wait">${ic("spin",22)} streaming…</div>`}
         </div>
-        ${cut && d.flagged ? bub("tanvi","Same bug on my chat — half a sentence, green tick.") : ""}
-        ${cut && !d.flagged ? `<div class="xprompt">${ic("eye",16,"#7C3AED")}More taps do nothing. Check the status board.</div>` : ""}
+        ${cut && d.flagged ? bub("tanvi","That's my chat too. Half a sentence, green tick.") : ""}
+        ${cut && !d.flagged ? `<div class="xprompt">${ic("eye",16,"#7C3AED")}More taps do nothing. Check the ops wall.</div>` : ""}
       </div>
     </div></div>`;
 }
 function discVerdict() {
   const d = state.dq, ok = d.suspect==="flag";
   const sus = [["crash","boom","Bot crashed"],["wifi","wifi","Slow internet"],["flag","flag","No finish signal"]];
-  const coach = (w) => `<div class="coach"><span>${w.trim()}</span><i></i><i></i></div>`;
+  const coach = (w, i) => `<div class="coach"><span>${w.trim()}</span><i></i><i></i></div>`;
   return `<div class="xstage disc">
-    <div class="xana">${ic("flag",16,"#fff")} Finish signal missing — not a crash, not “slow Wi‑Fi”</div>
+    <div class="xana">${ic("flag",16,"#fff")} Like a train that never got its guard's flag</div>
     <div class="train ${ok?"ok":""}">${ic("bolt",26,"#7C3AED")}<div class="engine">LLM</div>${W6.slice(0,5).map(coach).join("")}
       <div class="coach guard ${ok?"on":""}" data-testid="guard-van">${ok?`${ic("flag",18,"#fff")}<span>finish_reason</span>`:"<span>?</span>"}</div></div>
     <div class="row" style="gap:14px;justify-content:center">${sus.map(([k,icn,t])=>`<button type="button" class="suspect ${d.suspect===k?(k==="flag"?"ok":"bad shake"):""} ${ok&&k!=="flag"?"dim":""}" data-act="dq-sus" data-k="${k}" data-testid="sus-${k}">${ic(icn,34,"currentColor")}<b>${t}</b></button>`).join("")}</div>
     <div class="row" style="justify-content:center;min-height:52px;align-items:center;gap:14px">
-      ${ok ? `<div class="xreveal">${ic("check",18,"#10B981")}<b>Nothing crashed.</b> Nobody checked for the finish signal.</div>`
-        : d.suspect ? `<div class="xprompt bad">${ic("x",16,"#EF4444")}${d.suspect==="crash"?"Server's fine. Chunks were arriving.":"Rohan's Wi-Fi is fine. Words did arrive."}</div>` : `<div class="xprompt">${ic("search",16,"#7C3AED")}What was missing? Tap a suspect.</div>`}
+      ${ok ? `<div class="xreveal">${ic("check",18,"#10B981")}<b>Nothing crashed.</b> Nobody checked for the finish signal.</div><div class="xxp">+5*</div>${btn("Explore "+ic("play",14,"#fff"),"to-explore","data-testid='to-explore'")}`
+        : d.suspect ? `<div class="xprompt bad">${ic("x",16,"#EF4444")}${d.suspect==="crash"?"Server's fine. Chunks were arriving.":"Rohan's Wi-Fi is fine. Words did arrive."}</div>` : `<div class="xprompt">${ic("search",16,"#7C3AED")}Who froze the reply? Tap a suspect.</div>`}
     </div></div>`;
 }
-function discCheck() {
-  const d = state.dq, c = DISC_CHECK;
-  const picked = d.checkPick;
-  const ok = picked === c.correct;
-  const items = c.ops.map((o, i) => {
-    let s = "";
-    if (picked != null) s = i === c.correct ? "ok" : (i === picked ? "bad" : "dim");
-    return opt("ABC"[i], o, s, "dq-check", `data-i="${i}" data-testid="dq-check-${i}"`);
-  }).join("");
-  return `<div class="xstage disc">
-    <div class="xana">${ic("task",16,"#fff")} Quick check · only what you just learned</div>
-    <div class="learn-card" style="max-width:920px;margin:0 auto">
-      <i>Understanding check</i>
-      <b style="display:block;margin:6px 0 10px;font:700 16px Poppins;color:#301768">${esc(c.q)}</b>
-      <div class="opts one">${items}</div>
-      ${picked != null ? `<div class="fb ${ok?"ok":"bad"}" style="margin-top:10px"><span class="ico">${ic(ok?"check":"x",15,"#fff")}</span><div>${esc(ok?c.ok:c.bad)}</div></div>` : ""}
-    </div>
-    <div class="row" style="justify-content:center;min-height:52px;align-items:center;gap:14px">
-      ${ok ? `<div class="xxp">+5*</div>${btn("Continue to Explore "+ic("play",14,"#fff"),"to-explore","data-testid='to-explore'")}` : `<div class="xprompt">${ic("bulb",16,"#7C3AED")}Use the Learn + Race + Freeze ideas — no new jargon.</div>`}
-    </div></div>`;
-}
-const DQ_STEPS = [
-  ["Learn","What streaming is — and why it matters"],
-  ["See","Two bots. Same question."],
-  ["Interrupt","The reply that stopped"],
-  ["Diagnose","What actually went wrong?"],
-  ["Check","Prove you understand"],
-];
+const DQ_STEPS = [["Race","Two bots. One question."],["Freeze","The reply that stopped"],["Verdict","What actually went wrong?"]];
 function renderDisc() {
   const d = state.dq;
-  const body = d.step===0 ? discLearn() : d.step===1 ? discRace() : d.step===2 ? discFreeze() : d.step===3 ? discVerdict() : discCheck();
+  const body = d.step===0 ? discRace() : d.step===1 ? discFreeze() : discVerdict();
   const tips = [
-    ["Read What / Why / How first. This mission’s topic is Streaming Responses.","Read the cards, then continue."],
-    ["Same question to both assistants. Notice first words vs full finish.","Press Send. Compare the two assistants."],
-    [d.pulls>=5 ? "Text stopped. Nothing said finished. Yet the status board says delivered." : "You are the stream. Pull each piece in.", d.pulls>=5 ? "The stream stopped. Flag the status board." : "Tap the phone to pull each piece."],
+    ["Same question to both. Watch who talks first.","Press Send. Compare the two bots."],
+    [d.pulls>=5 ? "Text stopped. Nothing said finished. Yet the wall says delivered." : "You are the stream. Pull chunks in.", d.pulls>=5 ? "The stream stopped. Flag the ops wall." : "Tap the phone to pull each chunk."],
     ["Quiet isn't done. What signal never came?","Pick the suspect: what was missing?"],
-    ["Answer using only what Discovery taught.","Pick the honest diagnosis."],
   ][d.step];
   TIPS._dq = tips;
-  const canNext = (d.step===0) || (d.step===1 && d.racePick) || (d.step===2 && d.flagged) || (d.step===3 && d.suspect==="flag");
-  const nextLabel = d.step===0 ? "See it in action " : "Next ";
+  const canNext = (d.step===0 && d.racePick) || (d.step===1 && d.flagged);
   const dots = DQ_STEPS.map((s,i)=>`<span class="${i===d.step?"c":(i<d.step?"d":"")}">${i+1} · ${s[0]}</span>`).join("");
-  const obj = d.step===0 ? "Topic: Streaming Responses — understand it before any control." : "Find out why the reply froze — using what you just learned.";
-  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 1 · Discovery · Streaming Responses · ${d.step+1}/5</div><h2>${DQ_STEPS[d.step][1]}</h2></div><div class="sp"></div><div class="stepdots">${dots}</div></div>
+  const main = `<div class="main"><div class="hd"><div><div class="kick">Stage 1 · Discovery · ${d.step+1}/3</div><h2>${DQ_STEPS[d.step][1]}</h2></div><div class="sp"></div><div class="stepdots">${dots}</div></div>
     ${body}
-    <div class="row" style="justify-content:flex-end;min-height:44px">${canNext && d.step<4?btn(nextLabel+ic("play",14,"#fff"),"dq-next","data-testid='dq-next'"):""}</div></div>`;
-  shell({cur:0, done:0, tag:"Discovery · "+DQ_STEPS[d.step][0]}, sidePanel(obj, "_dq", d.step===2?Math.min(d.pulls,5):null, (d.step===3&&d.suspect==="flag")||(d.step===4&&d.checkPick===DISC_CHECK.correct)?"speak":"idle")+main);
+    <div class="row" style="justify-content:flex-end;min-height:44px">${canNext?btn("Next "+ic("play",14,"#fff"),"dq-next","data-testid='dq-next'"):""}</div></div>`;
+  shell({cur:0, done:0, tag:"Discovery · "+DQ_STEPS[d.step][0]}, sidePanel("Find out why Rohan's reply froze.", "_dq", d.step===1?Math.min(d.pulls,5):null, d.step===2&&d.suspect==="flag"?"speak":"idle")+main);
 }
 function dqAct(act, t) {
   const d = state.dq;
@@ -256,36 +194,31 @@ function dqAct(act, t) {
   if (act==="dq-pull") { if (d.pulls < 5) d.pulls++; else { d.pulls = 6; } render(); if (d.pulls>=5) { const p = document.querySelector('[data-testid="dq-pull"]'); if (p && d.pulls>5) { p.classList.add("shake"); } } return true; }
   if (act==="dq-flag") { d.flagged = true; render(); return true; }
   if (act==="dq-sus") { d.suspect = t.dataset.k; if (d.suspect==="flag") setXP(5); render(); return true; }
-  if (act==="dq-check") { d.checkPick = +t.dataset.i; if (d.checkPick===DISC_CHECK.correct) setXP(5); render(); return true; }
   if (act==="dq-next") { d.step++; render(); return true; }
   return false;
 }
 
 /* ================= EXPLORE ================= */
 const XBEATS = [
-  {id:"open",    k:"story", t:"stream=True"},
-  {id:"sse",     k:"code",  t:"SSE & events"},
-  {id:"chunks",  k:"code",  t:"Chunks · tokens · delta"},
-  {id:"blank",   k:"story", t:"Buffering"},
-  {id:"endline", k:"code",  t:"end=\"\""},
-  {id:"flush",   k:"code",  t:"flush=True"},
-  {id:"r1",      k:"recap", t:"Check · live line"},
-  {id:"basket",  k:"story", t:"parts.append"},
-  {id:"join",    k:"code",  t:"join · assemble vs display"},
-  {id:"cut",     k:"story", t:"Interrupted stream"},
-  {id:"finish",  k:"code",  t:"finish_reason"},
-  {id:"jam",     k:"story", t:"Empty / usage chunks"},
-  {id:"guard",   k:"code",  t:"Guards"},
-  {id:"r2",      k:"recap", t:"Check · whole consumer"},
+  {id:"open",   k:"story", t:"Open the line"},
+  {id:"chunks", k:"code",  t:"Split at dispatch"},
+  {id:"blank",  k:"story", t:"Across the internet"},
+  {id:"flush",  k:"code",  t:"Turn the dials"},
+  {id:"r1",     k:"recap", t:"Recap 1 · from the start"},
+  {id:"basket", k:"story", t:"Catch every word"},
+  {id:"join",   k:"code",  t:"Couple the words"},
+  {id:"cut",    k:"story", t:"Storm at the Wi-Fi"},
+  {id:"finish", k:"code",  t:"The finish flag"},
+  {id:"jam",    k:"story", t:"Jam at the app gate"},
+  {id:"guard",  k:"code",  t:"Guard the app gate"},
+  {id:"r2",     k:"recap", t:"Recap 2 · from the start"},
 ];
 function xLive() { const v = state.xq.v; return v.stream==="True" && v.end==='""' && v.flush==="True"; }
 function goalInfo() {
   const q = state.xq, b = XBEATS[q.beat].id, v = q.v;
   if (b==="open") return v.stream==="True" ? [6,"live","grn"] : [0,"waiting","gry"];
-  if (b==="sse") return q.check.sse===2 ? [6,"SSE understood","grn"] : [2,"read the wire","amb"];
   if (b==="chunks") return v.stream==="True" ? [6,"live","grn"] : [0,"waiting","gry"];
   if (b==="blank") return [0,"blank screen","red"];
-  if (b==="endline") return q.check.endline===0 ? [3,"one line","grn"] : [1,"set end","amb"];
   if (b==="flush") return xLive() ? [6,"live","grn"] : [0,"blank screen","red"];
   if (b==="r1") return q.r1.length>=3 ? [6,"live","grn"] : [0,"redo the moves","amb"];
   if (b==="basket") return q.basket ? [6,"live + saved","grn"] : [6,"live · not saved","amb"];
@@ -351,20 +284,6 @@ function beatBody() {
       tip = v.stream==="True" ? ["Pieces leave the server the moment they're written.","Chunks are streaming to the phone."] : ["The server waits to finish everything. Flip the stream lever.","Flip the lever to stream=True."];
       if (v.stream==="True") q.done[q.beat] = true;
       break; }
-    case "sse": {
-      const lines = SSE_LINES.map((L, i) => `<div class="sse-line ${L.kind}"><code>${L.t === "" ? "<span class='dim'>(blank line)</span>" : esc(L.t)}</code></div>`).join("");
-      const diag = `<div class="learn-card"><i>Wire format · Server-Sent Events</i>
-        <p class="mini">Each <code class="inline">data:</code> line is an event. Blank lines separate events. <code class="inline">: keep-alive</code> is a comment. <code class="inline">data: [DONE]</code> ends the HTTP stream. Your SDK turns these into chunk dicts.</p>
-        <div class="sse-box" data-testid="sse-box">${lines}</div>
-        <div class="mini" style="margin-top:8px"><b>Tokens vs chunks:</b> a chunk is one event on the wire; a token is what the model counts for cost/length. One chunk may carry zero, one, or several tokens.</div>
-      </div>`;
-      stage = diag;
-      check = xCheck("sse", "Which line means the HTTP stream is over?", ["a blank line", "`: keep-alive`", "`data: [DONE]`"], 2, true);
-      tip = q.check.sse===2
-        ? ["Exactly. Blank lines only separate events. DONE ends the stream.", "data: [DONE] ends the SSE stream."]
-        : ["Read the transcript top to bottom. Which line ends the stream?", "Pick the line that ends the stream."];
-      if (q.check.sse === 2) q.done[q.beat] = true;
-      break; }
     case "chunks": {
       const many = v.stream==="True";
       const diag = `<div class="fxrow lay-fan">${fbox("stream", `<code>${many?"6 chunks":"1 reply"}</code>`, "client.chat…create()", "src")}${farrow()}
@@ -382,23 +301,6 @@ function beatBody() {
       tip = q.bin ? ["Python holds printed text in a buffer until a newline or the end.","Words are held in the output buffer, not shown."] : ["Chunks crossed the internet and reached home. Find where they wait.","Tap the output buffer tank in the hallway."];
       if (q.bin) q.done[q.beat] = true;
       break; }
-    case "endline": {
-      const diag = `<div class="learn-card"><i>end=\"\" — stay on one line</i>
-        <p><b>What:</b> <code class="inline">print(piece, end="")</code> means do not add a newline after this piece.</p>
-        <p><b>Why:</b> A chat reply is one continuous sentence. Default <code class="inline">end="\\n"</code> would put every chunk on its own line.</p>
-        <div class="compare" style="margin-top:8px">
-          <div class="cmp"><b>end="\\n" (default)</b><div class="b bot">Your<br>order<br>is…</div></div>
-          <div class="cmp on"><b>end=""</b><div class="b bot">Your order is on the way.</div></div>
-        </div>
-        <p class="mini">Next lab adds <code class="inline">flush=True</code> so each piece appears immediately.</p>
-      </div>`;
-      stage = diag;
-      check = xCheck("endline", "Why set end=\"\" when printing stream chunks?", ["To stay on one continuous line", "To make the model smarter"], 0, true);
-      tip = q.check.endline===0
-        ? ["Right — one chat bubble, one line.", "end=\"\" keeps one line."]
-        : ["Compare the two examples above.", "Pick why end=\"\" matters."];
-      if (q.check.endline === 0) { q.v.end = '""'; q.done[q.beat] = true; }
-      break; }
     case "flush": {
       const live = xLive(), nl = v.end==='"\\n"', held = v.flush==="False";
       const delays = W6.map((_, i) => held ? 6*0.5+0.2 : i*0.5+0.2);
@@ -406,12 +308,12 @@ function beatBody() {
       const bufw = W6.map((w, i) => `<span class="wd" style="animation-delay:${i*0.5}s">${esc(w.trim())}</span>`).join("");
       const diag = `<div class="fxrow">${fbox("piece", `<code>"order "</code>`, "one chunk", "src")}${farrow()}
         <div class="fx ${held?"hold":""}"><b>output buffer</b><div class="fxv wrapt" style="gap:3px;min-height:40px">${held?bufw:'<span class="mini">passes straight through</span>'}</div><i>${held?"held until the end":"flushed every piece"}</i></div>${farrow(held?"blocked":"")}
-        <div class="fx screen"><b>Customer's screen</b><div class="fxv term">${screen}</div><i>${live?"one line, live":nl?"one word per line":"all at once, late"}</i></div></div>`;
+        <div class="fx screen"><b>Rohan's screen</b><div class="fxv term">${screen}</div><i>${live?"one line, live":nl?"one word per line":"all at once, late"}</i></div></div>`;
       const code = xCode(['for chunk in stream:', '    piece = ...', '    print(piece, end={{end}}, flush={{flush}})'], [3], "show_live.py");
       stage = zoomWrap(scPanel(lens(50, 86, "Zoom behind the dials")), diag, code, "lay-pipe");
       const unl = live && q.tried.end && q.tried.flush;
       check = q.zoom ? xCheck("flush", "`flush=True` means…", ["push to the screen now", "add a new line"], 0, unl) : "";
-      tip = q.zoom ? (live ? ["One line, every word the moment it lands.","You already set end=\"\". Now flush=True shows it now."] : ["You already learned end=\"\". Now set flush=True.","Set flush to True (end should already be \"\")."]) : ["Zoom behind the dials.","Tap the lens."];
+      tip = q.zoom ? (live ? ["One line, every word the moment it lands.","end=\"\" keeps one line. flush=True shows it now."] : ["Break it, then fix it. Tap `end` and `flush`.","Set end to \"\" and flush to True."]) : ["Zoom behind the dials.","Tap the lens."];
       if (q.check.flush===0 && live) q.done[q.beat] = true;
       break; }
     case "r1": {
@@ -438,20 +340,14 @@ function beatBody() {
       const slots = q.parts.map((p, i) => p!=null ? `<div class="fx slot on"><b>[${i}]</b><div class="fxv">"${esc(W6[p])}"</div></div>` : `<div class="fx slot" data-xt="slot${i}" tabindex="0" role="button" data-testid="slot-${i}"><b>[${i}]</b><div class="fxv">&nbsp;</div></div>`).join("");
       const sep = v.sep==='""' ? "" : " ";
       const joined = full ? W6.map(w => w.replace(/ /g, sep===" " ? "··" : "·")).join(sep===" " ? "·" : "") : "";
-      const liveLine = full ? W6.join("") : "";
-      const match = full && v.sep==='""' && liveLine.replace(/\s+/g," ") === joined.replace(/·/g," ").replace(/\s+/g," ");
       const diag = `<div class="col" style="gap:10px;width:100%"><div class="fxtray ${q.badDrop && Date.now()-q.badDrop<600?"shake":""}">${tray || `<span class="mini">${ic("check",12,"#10B981")} all chunks placed</span>`}</div>
         <div class="fxrow"><div class="fxarr"><span class="lbl">parts</span><div class="fxlist">${slots}</div></div></div>
-        ${full ? `<div class="fxrow">${fbox("join", `<code>${esc(v.sep)}.join(parts)</code>`, "", "src")}${farrow()}${fbox("assembled text", `<code class="${sep?"bad":""}">${esc(joined)}</code>`, sep ? "· = space · doubled" : "one clean line", sep?"bad":"ok")}</div>
-        <div class="compare" data-testid="assemble-vs-display">
-          <div class="cmp"><b>Displayed (live)</b><div class="b bot">${esc(liveLine)}</div><span class="mini">What the customer already saw word-by-word</span></div>
-          <div class="cmp ${match?"on":""}"><b>Assembled (join)</b><div class="b bot">${esc(joined.replace(/·/g," "))}</div><span class="mini">${match?"Should match the live line":"Fix the separator so they match"}</span></div>
-        </div>` : ""}</div>`;
+        ${full ? `<div class="fxrow">${fbox("join", `<code>${esc(v.sep)}.join(parts)</code>`, "", "src")}${farrow()}${fbox("text", `<code class="${sep?"bad":""}">${esc(joined)}</code>`, sep ? "· = space · doubled" : "one clean line", sep?"bad":"ok")}</div>` : ""}</div>`;
       const code = xCode(['parts = []', 'for chunk in stream:', '    ...', '    parts.append(piece)', 'text = {{sep}}.join(parts)'], full?[5]:[4], "keep_it.py");
       stage = zoomWrap(scCouple(lens(50, 84, "Zoom into the phone")), diag, code, "lay-couple");
       const unl = full && q.tried.sep && v.sep==='""';
       check = q.zoom ? xCheck("join", "Why join with `\"\"`?", ["chunks carry their own spaces", "Python needs it"], 0, unl) : "";
-      tip = q.zoom ? (!full ? ["Drag each chunk into its slot, in order.","Drag chunks into parts[0]…[5]."] : unl ? ["Live display and assembled text should match.","Joined cleanly — same as on screen."] : ["Compare assembled vs displayed. Change the separator.","Tap the separator value."]) : ["Zoom into the phone.","Tap the lens."];
+      tip = q.zoom ? (!full ? ["Drag each chunk into its slot, in order.","Drag chunks into parts[0]…[5]."] : unl ? ["One pass: shown, kept, joined.","Joined cleanly."] : ["Look at the spaces. Change the separator.","Tap the separator value."]) : ["Zoom into the phone.","Tap the lens."];
       if (q.check.join===0 && unl) q.done[q.beat] = true;
       break; }
     case "cut": {
@@ -514,30 +410,22 @@ function beatBody() {
 }
 function renderExplore() {
   const q = state.xq, beat = XBEATS[q.beat];
-  const taught = !!(q.taught && q.taught[beat.id]);
-  const teach = teachCard(beat.id);
-  const { stage, check, tip, speak } = taught ? beatBody() : { stage:"", check:"", tip:[XTEACH[beat.id]?XTEACH[beat.id].what:"Learn first.", "Read the card, then try it."], speak:"idle" };
+  const { stage, check, tip, speak } = beatBody();
   TIPS._xq = tip;
-  const kind = beat.k==="story"?"Lab":beat.k==="code"?"Concept lab":"Recap";
   const dots = XBEATS.map((b, i) => `<span class="xdot ${b.k} ${i===q.beat?"c":(i<q.beat?"d":"")}" title="${esc(b.t)}">${ic(b.k==="story"?"film":b.k==="code"?"code":"refresh",12,"currentColor")}</span>`).join("");
   const done = !!q.done[q.beat];
-  const next = taught && done && beat.id!=="r2" ? btn("Next "+ic("play",14,"#fff"),"x-next","data-testid='x-next'") : "";
-  const body = taught
-    ? `${teach}${check ? `<div class="xcheck-top">${check}</div>` : ""}<div class="xbody">${stage}</div><div class="row xfoot"><div class="f1"></div>${next}</div>`
-    : `<div class="xbody teach-only">${teach}</div>`;
-  const main = `<div class="main xmain"><div class="hd"><div><div class="kick">Stage 2 · Explore · Streaming Responses · ${q.beat+1}/${XBEATS.length} · ${kind}</div><h2>${beat.t}</h2></div><div class="sp"></div>${xMinimap()}</div>
-    ${goalBar()}${simLabel("Explore demos are simulated in-browser")}
-    ${body}</div>`;
+  const next = done && beat.id!=="r2" ? btn("Next "+ic("play",14,"#fff"),"x-next","data-testid='x-next'") : "";
+  const main = `<div class="main xmain"><div class="hd"><div><div class="kick">Stage 2 · Explore · ${q.beat+1}/12 · ${beat.k==="story"?"Story":beat.k==="code"?"Inside the code":"Recap"}</div><h2>${beat.t}</h2></div><div class="sp"></div>${xMinimap()}</div>
+    ${goalBar()}
+    <div class="xbody">${stage}</div>
+    <div class="row xfoot">${check || `<div class="f1"></div>`}${next}</div></div>`;
   const [n] = goalInfo();
-  const obj = taught ? "Concept lab: change one thing, observe, explain — questions stay above the demo." : "Read what / why / how before you touch any control.";
-  shell({cur:1, done:1, tag:"Explore · "+beat.t}, sidePanel(obj, "_xq", taught && n===6 && goalInfo()[2]==="grn" ? [6, goalInfo()[1].includes("✓")] : (taught?n:null), speak)+main);
+  shell({cur:1, done:1, tag:"Explore · "+beat.t}, sidePanel("Make Rohan's reply arrive whole.", "_xq", n===6 && goalInfo()[2]==="grn" ? [6, goalInfo()[1].includes("✓")] : n, speak)+main);
   if (q.enter) { clearTimeout(q._et); q._et = setTimeout(() => { q.enter = false; }, 900); }
   if (q.zoomAnim) { clearTimeout(q._zt); q._zt = setTimeout(() => { q.zoomAnim = false; if (state.scene==="explore") render(); }, 950); }
 }
 function xAct(act, t) {
   const q = state.xq, beat = XBEATS[q.beat];
-  if (act==="x-taught") { q.taught[beat.id] = true; render(); return true; }
-  if (!q.taught[beat.id] && act!=="x-next") return true;
   if (act==="x-lever") { q.v.stream = "True"; render(); return true; }
   if (act==="x-zoom") { q.zoom = true; q.zoomAnim = true; render(); return true; }
   if (act==="x-ev") {
@@ -564,4 +452,4 @@ function xAct(act, t) {
   }
   return false;
 }
-const XCORRECT = { sse:2, chunks:1, endline:0, flush:0, join:0, finish:1, guard:0 };
+const XCORRECT = { chunks:1, flush:0, join:0, finish:1, guard:0 };

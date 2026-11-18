@@ -74,13 +74,13 @@ const LM_CAST = {
  sana:["Sana Qureshi","sana-face","Squad member (Civil · structural risk). Watches where replies crack."],
 };
 const LM_STAGE_HINT = [
- "Learn what streaming is, then see the half-sentence + green-tick problem.",
- "Concept labs: each control is explained before you try it.",
- "Four scenarios (A–D): decide correct app behaviour for real stream outcomes.",
- "Predict customer-visible results from taught concepts only (simulated runs).",
- "Walk through a stream consumer, then build and check it (simulated harness).",
- "Debug levels 1–5: observe → find → fix → re-test.",
- "Independent mastery challenge, then a report of what you can do.",
+ "Spot the problem: a reply stops mid-sentence, but the dashboard says \"All good\".",
+ "See how a reply travels piece by piece from the AI to the phone, and what each piece means.",
+ "Decide what to do with each live event: show it, label it honestly, or retry once.",
+ "Guess what customers will see after 6 risky code changes, then watch them run.",
+ "Build the \"Line Keeper\" code from blocks, then finish the last step yourself.",
+ "Find and fix 5 sneaky bugs without hiding the problem.",
+ "Final challenge: keep 5 live chats honest while a fake \"All good\" board fights back.",
 ];
 const LM_NODE_HINT = {
  "3.1":"How apps ask servers for data and read the reply's status code.",
@@ -91,13 +91,13 @@ const LM_NODE_HINT = {
  "3.6":"Tuning dials like temperature and reply length (coming next).",
 };
 const LM_RECAP = [
- {s:"Discovery", pts:["Streaming vs waiting: same words, earlier first pixel.","Chunks are pieces on the wire; tokens are how the model counts length/cost.","The app reads deltas, renders progressively, and finishes only on a finish signal.","Interruption / quiet ≠ done. The All-good tick without finish_reason is a lie."], ana:"Live commentary vs tomorrow's match report — and the umpire's final signal.", tryit:true},
- {s:"Explore", pts:["Each lab teaches a control before you touch it.","stream=True, delta.content, empty/None guards, flush, parts.append, \"\".join, finish_reason, interrupted streams."], ana:"Demo → change one thing → observe → explain."},
- {s:"Assign", pts:["A finishes with stop → complete.","B partial then silence → partial + keep text.","C fail before content → one retry after a pause.","D incomplete marked complete → bug; use finish_reason/error after the loop."], ana:"Apply honesty to four real outcomes — not a Discovery repeat."},
- {s:"Predict", pts:["No flush freezes the screen.","No .get() crashes on role-only.","Text≠complete.","Stream once.","Retry storms.","length → truncated."], ana:"Predict with taught concepts only; results are simulated."},
- {s:"Code", pts:["Brief walkthrough of a full OpenAI-style consumer before blocks.","Micro practices structure; Guided fixes honest status without one-click first; Independent uses a simulated harness."], ana:"Build skill, then assemble."},
- {s:"Debug", pts:["Levels 1–5: observe simulated failure → find line → real fix → re-test.","Guards, flush, single pass, honest status, don't break before usage."], ana:"Fix the leak; don't paint over it."},
- {s:"Mastery", pts:["Independent challenge first; help only after attempt.","Live honest-status scenarios.","Mastery report: understands / did well / needs improvement."], ana:"Prove you can explain, code, debug, and apply streaming."},
+ {s:"Discovery", pts:["Streaming shows a reply while it's being written. Same words, it just starts sooner.","A reply can stop mid-sentence when the connection is cut.","Text stopping doesn't mean it's finished. Only the finish signal (finish_reason) says so, and it never came. The \"All good\" tick was wrong."], ana:"A train isn't complete just because coaches stopped arriving. It needs the guard's van with the flag.", tryit:true},
+ {s:"Explore", pts:["stream=True asks the AI to send the reply in chunks.","Python holds printed words in a buffer. end=\"\" keeps one line, flush=True shows each piece instantly.","Collect every piece in a list (parts) while printing, then glue them with \"\".join.","The finish signal: \"stop\" = done, \"length\" = cut short by the limit, nothing = unfinished.","Some chunks carry no words (role-only, usage-only). Guards skip them safely."], ana:"A conveyor belt: crates (chunks) roll from the kitchen (AI) to the customer's phone. You show each crate, keep it in a basket, and only say \"delivered\" when the final flag arrives."},
+ {s:"Assign", pts:["A piece of text arrives: show it and keep it.","Goes quiet with no finish signal: mark partial, never \"all good\".","Error before any text: retry once after a short pause. Error after some text: keep it, mark error, offer Regenerate.","A --temperature option lets people set the creativity dial, but only within 0.0–2.0."], ana:"Like a dispatcher at dinner rush: every order gets an honest status, and you don't flood the kitchen with repeat orders."},
+ {s:"Predictions", pts:["No flush: the screen looks frozen, then everything lands at once.","No safety checks: the bot crashes on the very first (wordless) chunk.","\"There's text, so it's complete\": half sentences get a green tick.","Reading the stream twice: the bot's memory saves an empty reply.","Retrying instantly, forever: a retry storm that overloads the service.","A tiny token limit: replies end early and should be labelled truncated."], ana:"Small \"tidy-ups\" can change what customers see. Predict before you run."},
+ {s:"Code", pts:["consume() reads the stream once: prints live, collects the pieces, notes the finish signal and usage.","The status is decided after the loop: error → error, length → truncated, stop → complete, otherwise partial.","Tests check every situation, including hidden ones, before the code ships."], ana:"You wrote the courier's rulebook: deliver every word, and report honestly whether the parcel was complete."},
+ {s:"Debug", pts:["Guard once (if piece:) so None never crashes the line.","flush=True so words appear live.","Collect in the same loop that prints. A stream can't be read twice.","Decide status after the loop, from the error and finish_reason.","Don't stop early: usage (the scorecard) arrives after the finish signal.","Prefer a real fix over a patch that only hides the problem."], ana:"A good mechanic fixes the leak; a bad one just paints over the stain."},
+ {s:"Mastery", pts:["Every chat streamed live and assembled whole.","Cut chats got honest labels: partial, truncated or error.","Retries were patient: one, after a pause.","Fake \"All good\" ticks were replaced with the truth."], ana:"The big idea: a reply isn't done when it stops. It's done when it says it's done."},
 ];
 /* Plain-English notes for code lines: [regex, note]. First match wins. */
 const LM_LINES = [

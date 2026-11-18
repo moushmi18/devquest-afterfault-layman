@@ -84,5 +84,7 @@ code.lm-term{text-decoration-color:rgba(124,58,237,.6)}
 #lm-root [hidden],#mc-panel[hidden],#lm-mob[hidden],#lm-pop[hidden]{display:none!important}
 .mc-x{min-width:36px;min-height:32px;font-size:15px!important;position:relative;z-index:2}
 #demo-bar .lm-bar .lm-whatbtn{background:#7C3AED;color:#fff;box-shadow:0 2px 0 #4C1D95}
-/* Phone chrome for demo bar — layout itself is fluid via responsive.css */
+/* phones only: readable mission screens, swipe to pan */
+body.lm-phone #viewport{overflow:auto;-webkit-overflow-scrolling:touch}
+body.lm-phone #app.screen{position:absolute}
 @media (max-width:600px){#demo-bar .tagline{display:none}#demo-bar{padding:0 8px;gap:6px}#demo-bar .lm-bar .btn{padding:5px 8px}}

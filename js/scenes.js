@@ -31,39 +31,16 @@ const XLOC = [
   {id:"pgate",    ic:"scan",   n:"Phone · app gate",   g:4},
 ];
 const XGROUPS = ["Server","Internet","Wi-Fi","Home","Phone"];
-/* rooms visited in each beat (last = where the camera rests).
-   Order must match XBEATS: open,sse,chunks,blank,endline,flush,r1,basket,join,cut,finish,jam,guard,r2 */
-const XBEAT_PATH = [
-  [0],           // open
-  [1],           // sse
-  [2, 3, 4, 5],  // chunks
-  [5],           // blank
-  [],            // endline (concept)
-  [5],           // flush
-  [],            // r1 recap
-  [6],           // basket
-  [7],           // join
-  [4],           // cut
-  [8],           // finish
-  [9],           // jam
-  [9],           // guard
-  [],            // r2 recap
-];
-/* indices: 4=endline, 6=r1, 13=r2 → empty paths */
-const XBEAT_LOC = XBEAT_PATH.map((p, i) => {
-  if (p.length) return p[p.length - 1];
-  if (i === 6) return -1;   // r1
-  if (i === 13) return -2;  // r2
-  return -1;                // endline / other concept overlays
-});
+/* rooms visited in each beat (last = where the camera rests) */
+const XBEAT_PATH = [[0],[1],[2,3,4,5],[5],[],[6],[7],[4],[8],[9],[9],[]];
+const XBEAT_LOC = XBEAT_PATH.map((p, i) => p.length ? p[p.length-1] : (i===4 ? -1 : -2));
 const XR1 = [0,1,2,3,5], XR2 = [0,1,2,3,4,5,6,7,8,9];
-const XENTER = ["fade","slide","fade","zoom","fade","zoom","ff","slide","zoom","storm","zoom","slide","zoom","ff"];
+const XENTER = ["fade","slide","fade","zoom","ff","slide","zoom","storm","zoom","slide","zoom","ff"];
 
 function xMinimap() {
-  const q = state.xq, cur = XBEAT_LOC[q.beat] ?? -1, recap = cur < 0;
-  const seen = new Set();
-  for (let b = 0; b < q.beat; b++) (XBEAT_PATH[b] || []).forEach(r => seen.add(r));
-  (XBEAT_PATH[q.beat] || []).slice(0, -1).forEach(r => seen.add(r));
+  const q = state.xq, cur = XBEAT_LOC[q.beat], recap = cur < 0;
+  const seen = new Set(); for (let b = 0; b < q.beat; b++) XBEAT_PATH[b].forEach(r => seen.add(r));
+  XBEAT_PATH[q.beat].slice(0, -1).forEach(r => seen.add(r));
   const groups = XGROUPS.map((g, gi) => {
     const pins = XLOC.map((l, i) => [l, i]).filter(([l]) => l.g===gi).map(([l, i]) => {
       const c = i===cur ? "c" : (seen.has(i) || (recap && (cur===-2 || XR1.includes(i)))) ? "d" : "";
@@ -84,7 +61,7 @@ function pip(mode) {
 }
 function xScene(loc, inner, o = {}) {
   const q = state.xq, l = XLOC[loc] || {id:o.id||"montage", ic:"ff", n:o.name||"Replay"};
-  const enter = q.enter ? `enter-${XENTER[q.beat] || "fade"}` : "";
+  const enter = q.enter ? `enter-${XENTER[q.beat]}` : "";
   return `<div class="xscene loc-${l.id} ${o.cls||""} ${enter}" data-testid="x-world">
     <div class="sbadge">${ic(l.ic,14,"currentColor")}<span>${esc(l.n)}</span></div>
     ${inner}${o.pip ? pip(o.pip) : ""}${o.bubble||""}${o.lens||""}</div>`;
