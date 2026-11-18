@@ -35,6 +35,7 @@ elif finish == "length":
 else:
     status = "partial"
 print("status:", status)`;
+const LX_REF_TIPS = { 6: "turns streaming on", 8: "pieces go here", 12: "loop over chunks", 13: "guard 1: no choices", 16: "new text", 17: "guard 2: real text?", 18: "show live", 19: "keep it", 20: "finish signal?", 22: "connection broke", 25: "always close", 26: "assemble", 30: "stop → complete", 32: "length → truncated", 34: "else → partial" };
 const LX_REF_NOTES = {
   1: ["Bring in the client", "Imports the OpenAI Python library's client class. (Here it's a practice version: no key, no internet.)"],
   2: ["Make a client", "Creates the object you use to talk to the API. It reads your API key from the environment in real projects."],
@@ -145,8 +146,8 @@ const LX_INDEP = `def consume(stream):
 function lxRunBox(id, a, suite, opts = {}) {
   return `<div class="lx-runrow">${lxBtn(ic("play", 13, "#fff") + " " + (opts.label || "Run checks"), "lx-run", `data-ed="${id}" data-suite="${suite}" data-testid="run-${id}" ${a.busy ? "disabled" : ""}`, a.busy ? "dis" : "p")}${lxPyBadge()}</div>
     ${a.err ? lxFb("bad", "Couldn't run.", a.err) : ""}
-    <div class="lx-grid2 lx-results"><div class="lx-col"><div class="lbl">Terminal (what the user sees)</div>${lxTerm(`<span class="lx-out">${a.demo ? esc(a.demo.screen) + (a.demo.error ? `\n<span class="er">${esc(a.demo.error)}</span>` : "") : '<span class="dim">Press Run to execute your code for real.</span>'}</span>`, { id: "term-" + id, file: "my_code.py" })}</div>
-    <div class="lx-col">${a.results ? lxTests(a.results) : `<div class="lx-card mini">Checks run your code against several practice streams: normal, messy, cut off, quiet${suite !== "script" ? ", and broken connections" : ""}.</div>`}</div></div>`;
+    <div class="lx-grid2 lx-results"><div class="lx-col"><div class="lbl">Terminal</div>${lxTerm(`<span class="lx-out">${a.demo ? esc(a.demo.screen) + (a.demo.error ? `\n<span class="er">${esc(a.demo.error)}</span>` : "") : '<span class="dim">Press Run.</span>'}</span>`, { id: "term-" + id, file: "my_code.py" })}</div>
+    <div class="lx-col">${a.results ? lxTests(a.results) : `<div class="lx-card mini">${lxFlow(["normal", "messy", "cut off", "quiet"].concat(suite !== "script" ? ["broken"] : []).map(x => "🧪 " + x), "")}</div>`}</div></div>`;
 }
 async function lxRun(el, a, step) {
   const id = el.dataset.ed, suite = el.dataset.suite;
@@ -165,24 +166,24 @@ async function lxRun(el, a, step) {
 }
 
 LX_STAGES[4] = {
-  goal: "Understand a complete Python stream consumer line by line, then write one yourself and prove it works with real Python.",
-  sumTitle: "You wrote a working stream consumer", sumWho: "tanvi", sumSay: "Not just stream=True, flush, join and finish_reason one at a time: a whole program that uses them together and passes real checks.",
-  learned: [["The full loop", "create(stream=True) → for chunk → guards → print live → append → finish_reason → join."], ["Errors", "try/except keeps the text and an honest status; finally closes the stream."], ["Testing", "Your code ran against normal, messy, cut-off, quiet and broken streams."]],
+  goal: "Read a stream consumer, then write your own.",
+  sumTitle: "You wrote a working stream consumer", sumWho: "tanvi", sumSay: "A whole program, passing real checks.",
+  learned: [["The full loop", "stream=True → guards → print → append → finish → join."], ["Errors", "try/except = honest status; finally closes."], ["Tested", "Normal, messy, cut-off, quiet, broken."]],
   steps: [
     { id: "c1", short: "Walkthrough", title: "A complete stream consumer, line by line", section: "6 · Practical implementation", concept: "python",
-      task: "Tap any line to see what it does, then press **Step** to run the program on a real stream and watch the variables change. Run it on all three streams.",
-      who: "tanvi", say: "Here's the whole thing working. Before you write anything, let's understand every line, and watch it run one step at a time.",
-      mentor: "Watch `parts`, `finish` and the screen in the panel. Try the *quiet* stream: the loop ends normally, but finish stays None, so the status is partial.",
-      need: "Step through all three streams to the end.",
+      task: "**Step** through all three streams. Tap lines to explain.",
+      who: "tanvi", say: "The whole thing, working. Watch it run step by step.",
+      mentor: "Watch `finish` on the *quiet* stream.",
+      need: "Finish all three streams.",
       hints: ["Press Step repeatedly (or Run to end).", "Switch the stream with the three buttons and step again."],
       isDone: a => ["normal", "quiet", "error"].every(s => (a.seen || {})[s]),
       body(a) {
         const s = a.s || "normal", T = lxTrace(LX_TRACE_STREAMS[s]), k = Math.min(a.k || 0, T.length - 1), cur = a.k != null ? T[k] : null;
         const ln = a.ln || (cur && cur.ln) || 6, note = LX_REF_NOTES[ln];
         const v = cur ? cur.v : null;
-        return `<div class="lx-grid2 lx-walk"><div class="lx-col">${lxCode(LX_REF, { title: "support_bot.py", clickable: "lx-c1-ln", marks: Object.assign({}, cur ? { [cur.ln]: "foc" } : {}, a.ln ? { [a.ln]: "good" } : {}), cls: "sm" })}</div>
+        return `<div class="lx-grid2 lx-walk"><div class="lx-col">${lxCode(LX_REF, { title: "support_bot.py · tap a line", tips: LX_REF_TIPS, clickable: "lx-c1-ln", marks: Object.assign({}, cur ? { [cur.ln]: "foc" } : {}, a.ln ? { [a.ln]: "good" } : {}), cls: "sm" })}</div>
           <div class="lx-col lx-sticky">
-            ${note ? lxCard(`<div class="kick">Line ${ln}</div><b>${md(note[0])}</b><p>${md(note[1])}</p>`, "lx-note") : lxCard(`<p class="mini">Tap a line to explain it.</p>`)}
+            ${note ? lxCard(`<div class="kick">Line ${ln}</div><b>${md(note[0])}</b><p>${md(note[1])}</p>`, "lx-note") : lxCard(`<p class="mini">👆 Tap a line.</p>`)}
             <div class="lx-row lx-wrap"><span class="lbl">Stream</span>${["normal", "quiet", "error"].map(x => `<button type="button" class="lx-pill ${s === x ? "on" : ""}" data-act="lx-c1-s" data-s="${x}">${x === "normal" ? "normal" : x === "quiet" ? "goes quiet" : "connection drops"} ${(a.seen || {})[x] ? "✓" : ""}</button>`).join("")}</div>
             <div class="lx-row">${lxBtn("Step " + ic("step", 12, "#fff"), "lx-c1-step", 'data-testid="c1-step"', "p sm")}${lxBtn("Run to end", "lx-c1-end", "", "g sm")}${lxBtn("Restart", "lx-c1-reset", "", "g sm")}<span class="mini">${cur ? `step ${k + 1}/${T.length}` : ""}</span></div>
             ${cur ? `<div class="lx-trace-note">${ic("bulb", 14, "#7C3AED")} ${md(cur.note)}</div>
@@ -199,10 +200,10 @@ LX_STAGES[4] = {
       } },
 
     { id: "c2", short: "Micro: key parts", title: "Micro: fill in the five key parts", section: "6 · Practical implementation", concept: "python",
-      task: "Fill each blank one at a time (each has a short explanation), then press **Run my code** to run it for real.",
-      who: "tanvi", say: "Small first. The program is written; five key parts are missing. Each one is something you used in Explore.",
-      mentor: "Every blank maps to a concept: 1 = asking for a stream, 2 = where the text is, 3 & 4 = showing it live, 5 = joining.",
-      need: "Fill all five blanks correctly and run the code.",
+      task: "Fill 5 blanks, then **Run my code**.",
+      who: "tanvi", say: "Small first: five missing parts.",
+      mentor: "1 stream · 2 text · 3-4 live · 5 join.",
+      need: "Fill all five and run.",
       hints: ["Blank 1 turns streaming on. Blank 2 is the field inside delta.", "Blanks 3 and 4 are the two print switches from Explore.", "True · content · \"\" · True · \"\""],
       isDone: a => a.passed,
       prepare(a) { const f = a.f || {}; if (LX_BLANKS.some(b => f[b.n] !== b.ok)) { a.react = { kind: "bad", text: "Fill every blank correctly first; each wrong pick shows why." }; render(); return null; } let c = LX_MICRO; LX_BLANKS.forEach(b => { c = c.replace(`___${b.n}___`, b.ok); }); return c; },
@@ -220,14 +221,14 @@ LX_STAGES[4] = {
         "lx-c2"(el, a) { const n = +el.dataset.n, o = el.dataset.o, b = LX_BLANKS[n - 1]; a.f = a.f || {}; a.f[n] = o; if (o === b.ok) { a.fb = null; a.react = { kind: "ok", text: b.why }; } else { a.fb = lxFb("bad", "Not this one.", b.bad); a.react = { kind: "bad", text: b.bad }; } },
         "lx-run"(el, a, step) { lxRun(el, a, step); return false; },
       },
-      okText: "Your filled-in program streamed, skipped empty chunks, joined and recorded finish_reason. All checks pass.",
+      okText: "All checks pass!",
       onPass() { lxAward("c-micro", 8, "micro program runs"); } },
 
     { id: "c3", short: "Guided: the loop", title: "Guided: write the loop body yourself", section: "6 · Practical implementation", concept: "python",
-      task: "Replace `pass` with the loop body (follow the four comments), then **Run checks**. Fix whatever fails and run again.",
-      who: "tanvi", say: "Now you type the heart of it. The comments are your plan. I'll check it on a normal stream, a messy one, a cut-off one and a quiet one.",
-      mentor: "Indentation matters: the four steps go inside the `for` loop (4 spaces), and the print/append go inside `if piece:` (8 spaces).",
-      need: "Make all checks pass.", hintGate: a => (a.runs || 0) > 0, hintGateText: "Run your code once first. Hints open after your first attempt.",
+      task: "Replace `pass` using the 4 comments, then **Run checks**.",
+      who: "tanvi", say: "Your turn to type the heart of it. Comments are your plan.",
+      mentor: "Indent: 4 spaces in the loop, 8 inside `if piece:`.",
+      need: "Make all checks pass.", hintGate: a => (a.runs || 0) > 0, hintGateText: "Run once to unlock hints.",
       hints: ["Step 1: `if not chunk.choices:` then `continue` on the next line.", "Step 2–3: `choice = chunk.choices[0]`, `piece = choice.delta.content`, then `if piece:` with print(piece, end=\"\", flush=True) and parts.append(piece) inside.", "Step 4: `if choice.finish_reason:` then `finish = choice.finish_reason`."],
       coachMap: { C3: "print inside the loop with end=\"\" and flush=True.", C5: "Put parts.append(piece) inside `if piece:`.", C7: "Store choice.finish_reason when it isn't None.", C2: "Read the error line number in the terminal." },
       isDone: a => a.passed,
@@ -236,16 +237,16 @@ LX_STAGES[4] = {
       onPass(a) { lxAward("c-guided", a.runs === 1 ? 14 : 10, "loop written"); } },
 
     { id: "c4", short: "Independent", title: "Independent: write consume(stream)", section: "6 · Errors & closing the stream", concept: "errors",
-      task: "Write the whole `consume(stream)` function from the docstring. It must handle normal, cut-off, quiet and broken streams, and always close the stream.",
-      who: "sana", say: "This is the version that would have saved Rohan's chat. No blanks, no comments inside: just the spec. It has to be honest in every failure case.",
-      mentor: "Combine the loop you wrote with `try / except APIConnectionError / finally: stream.close()`, then turn finish into a status. `APIConnectionError` is already available.",
-      need: "Make all 8 checks pass.", hintGate: a => (a.runs || 0) > 0, hintGateText: "Run it once first. Hints open after your first attempt.",
+      task: "Write `consume(stream)` from the docstring.",
+      who: "sana", say: "This would have saved Rohan's chat. Just the spec now.",
+      mentor: "Your loop + `try/except APIConnectionError/finally`.",
+      need: "Make all 8 checks pass.", hintGate: a => (a.runs || 0) > 0, hintGateText: "Run once to unlock hints.",
       hints: ["Start with parts = [] and finish = None, then wrap your loop from the last step in `try:`.", "`except APIConnectionError: return \"\".join(parts), \"error\"` and `finally: stream.close()`.", "After the try: return (text, \"complete\") if finish == \"stop\", (text, \"truncated\") if \"length\", else (text, \"partial\")."],
       coachMap: { F4: "No finish_reason means \"partial\", even though the loop ended normally.", F5: "Catch APIConnectionError and return what you have with \"error\".", F6: "An error before any text still returns (\"\", \"error\").", F8: "Put stream.close() in a finally: block." },
       isDone: a => a.passed,
       body(a) { return `${lxEditor("c4", LX_INDEP, { file: "consume.py", rows: 24 })}${lxRunBox("c4", a, "consume")}`; },
       act: { "lx-run"(el, a, step) { lxRun(el, a, step); return false; } },
-      okText: "Honest in every case: complete, truncated, partial and error, and the stream is always closed.",
+      okText: "Honest in every case, always closed.",
       onPass(a) { lxAward("c-indep", a.runs === 1 ? 24 : 18, "consume() works"); lxBadge("keeper"); } },
   ],
   onFinish() { lxAward("stage-4", 4, "Code complete"); },
@@ -303,33 +304,33 @@ function lxBugCode(b) {
 }
 function lxBugLine(b) { const lines = lxBugCode(b).split("\n"); const key = b.from ? b.to : b.remove ? "    choice = chunk.choices[0]" : 'status = "complete"   # hotfix: loop ended, so we are done'; return lines.indexOf(key) + 1; }
 LX_STAGES[5] = {
-  goal: "Debug Ila's night-shift hotfixes like an engineer: reproduce, locate, explain, fix, re-test.",
-  sumTitle: "Five bugs found, explained and fixed", sumWho: "ila", sumSay: "Okay. Maybe I'll run the checks before my next hotfix.",
-  learned: [["Reproduce", "Run it first; see the symptom yourself."], ["Locate", "Use the error message and line number, or the wrong output."], ["Explain", "Say why the line is wrong before touching it."], ["Fix & re-test", "Change the cause, then run the checks again."]],
+  goal: "Fix Ila's hotfixes in five moves.",
+  sumTitle: "Five bugs found, explained and fixed", sumWho: "ila", sumSay: "Okay. I'll run checks before my next hotfix.",
+  learned: [["Reproduce", "See the symptom."], ["Locate", "Error line or wrong output."], ["Explain", "Why is it wrong?"], ["Fix & re-test", "Change the cause, run again."]],
   steps: [
     { id: "g0", short: "How to debug", title: "How engineers debug: five moves", section: "Debugging process", concept: "debug",
-      task: "Put the five debugging moves in the right order by tapping them.",
-      who: "sana", say: "Ila shipped five 'small improvements' overnight. Before we touch any code, here's the method we'll use on every bug.",
-      mentor: "You can't fix what you haven't seen. Always start by making the bug happen.",
+      task: "Tap the five moves in order.",
+      who: "sana", say: "Ila shipped five 'small improvements'. First, the method.",
+      mentor: "Can't fix what you haven't seen.",
       need: "Order the five moves.", hints: ["You can't locate a bug before you've seen it happen.", "Reproduce → Locate → Explain → Fix → Re-test."],
       isDone: a => a.win,
       body(a) {
-        const M = ["Reproduce: run it and watch the symptom", "Locate: find the line from the error or wrong output", "Explain: say why that line is wrong", "Fix: change the cause", "Re-test: run the checks again"];
+        const M = ["▶ Reproduce", "🔍 Locate", "💬 Explain", "🔧 Fix", "✅ Re-test"];
         const order = a.order || [], shuffled = [2, 4, 0, 3, 1];
         return `<div class="lx-order"><div class="lbl">Your order</div><ol>${order.map(i => `<li>${esc(M[i])}</li>`).join("")}${order.length < 5 ? `<li class="mini">tap the next move…</li>` : ""}</ol></div>
           <div class="lx-row lx-wrap">${shuffled.filter(i => !order.includes(i)).map(i => `<button type="button" class="lx-pill" data-act="lx-g0" data-i="${i}">${esc(M[i])}</button>`).join("")}</div>
           ${a.fb || ""}${order.length ? lxBtn("Start over", "lx-g0-reset", "", "g sm") : ""}`;
       },
       act: {
-        "lx-g0"(el, a) { const i = +el.dataset.i; a.order = a.order || []; if (i === a.order.length) { a.order.push(i); a.fb = null; if (a.order.length === 5) { a.win = true; a.react = { kind: "ok", text: "That's the loop we'll use on all five bugs." }; lxAward("g-method", 4, "debug method"); } } else { a.fb = lxFb("bad", "Not next.", "Which move needs the previous one done first? You need to see a bug before you can locate it, and understand it before fixing it."); a.react = { kind: "bad", text: "Think: what do you need in hand before this move makes sense?" }; } },
+        "lx-g0"(el, a) { const i = +el.dataset.i; a.order = a.order || []; if (i === a.order.length) { a.order.push(i); a.fb = null; if (a.order.length === 5) { a.win = true; a.react = { kind: "ok", text: "That's the loop we'll use on all five bugs." }; lxAward("g-method", 4, "debug method"); } } else { a.fb = lxFb("bad", "Not next.", "See it before you locate it; understand it before you fix it."); a.react = { kind: "bad", text: "Think: what do you need in hand before this move makes sense?" }; } },
         "lx-g0-reset"(el, a) { a.order = []; a.fb = null; },
       } },
     ...LX_BUGS.map((b, k) => ({
       id: "g" + (k + 1), short: `Bug ${k + 1}`, title: `Bug ${k + 1} · ${b.title}`, section: "Debug", concept: "debug",
-      task: "Follow the five moves: **Run** it, **tap** the guilty line, **explain** why, **fix** it in the editor, and **re-test**.",
+      task: "Run → tap the line → explain → fix → re-test.",
       who: k % 2 ? "rohan" : "ila", say: k % 2 ? `Customer report: ${b.symptom}` : `Hotfix ${k + 1}: "minor stream polish". ${b.symptom}`,
-      mentor: "Move by move. The panel on the left shows where you are in the process.",
-      need: "Fix the bug and pass the checks.",
+      mentor: "One move at a time.",
+      need: "Fix it and pass the checks.",
       hints: ["Run it, then compare the terminal with what a correct consumer would show.", `Look at line ${lxBugLine(b)}.`, b.explain.options.find(o => o.ok).why],
       isDone: a => a.passed,
       body(a) {
@@ -339,12 +340,12 @@ LX_STAGES[5] = {
           ${phase === 1 ? `${lxCode(code, { title: "ila_hotfix.py", cls: "sm" })}<div class="lx-row">${lxBtn(ic("play", 13, "#fff") + " Run Ila's code", "lx-g-run", `data-testid="g-run"`, "p")}${lxPyBadge()}</div>${a.err ? lxFb("bad", "Couldn't run.", a.err) : ""}` : ""}
           ${phase >= 2 && phase < 4 ? `<div class="lx-grid2"><div class="lx-col">${lxCode(code, { title: "ila_hotfix.py — tap the guilty line", cls: "sm", clickable: phase === 2 ? "lx-g-line" : null, marks: Object.assign({}, a.miss ? { [a.miss]: "bad" } : {}, a.found ? { [bl]: "foc" } : {}) })}</div>
             <div class="lx-col"><div class="lbl">What happened (${b.stream} stream)</div>${lxTerm(esc(a.demo ? a.demo.screen : "") + (a.demo && a.demo.error ? `\n<span class="er">${esc(a.demo.error)}</span>` : "") + (b.statusLie ? '\n<span class="er">status = "complete"   ← on half a sentence</span>' : "") + (k === 1 ? '\n<span class="dim">>>> reply</span>\n\'Your order  is on   the way.\'' : ""), { file: "ila_hotfix.py" })}
-            ${phase === 2 ? (a.missFb || lxCard(`<p class="mini">${k === 0 ? "The terminal stayed blank while chunks arrived, then showed everything. Which line shows the text?" : "Use the error line or the wrong value to find the line."} Tap it in the code.</p>`)) : lxQ("gx-" + k, b.explain)}</div></div>` : ""}
+            ${phase === 2 ? (a.missFb || lxCard(`<p class="mini">👆 ${k === 0 ? "Which line shows the text?" : "Use the error or wrong value."} Tap it.</p>`)) : lxQ("gx-" + k, b.explain)}</div></div>` : ""}
           ${phase >= 4 ? `${lxEditor("g" + (k + 1), code, { file: "ila_hotfix.py", rows: 22 })}${lxRunBox("g" + (k + 1), a, "debug", { label: "Re-test my fix" })}` : ""}`;
       },
       act: {
         async "lx-g-run"(el, a) { a.err = null; a.busy = true; render(); const r = await PY.free(lxBugCode(b), b.stream); a.busy = false; if (!r.ok) { a.err = r.error; render(); return; } a.demo = r.data.demo; a.ran = true; a.react = { kind: "ok", text: "Symptom reproduced. Now find the line responsible." }; render(); lxPlayFrames("lx-dummy", null); return false; },
-        "lx-g-line"(el, a) { const n = +el.dataset.ln, bl = lxBugLine(b); if (n === bl || (b.remove && Math.abs(n - bl) <= 1)) { a.found = true; a.miss = null; a.missFb = null; a.react = { kind: "ok", text: "That's the line. Now explain why before fixing it." }; } else { a.miss = n; a.missFb = lxFb("bad", `Line ${n} is fine.`, "Look for the line connected to the symptom: " + b.symptom); a.react = { kind: "bad", text: "Match the symptom to the job each line does." }; } },
+        "lx-g-line"(el, a) { const n = +el.dataset.ln, bl = lxBugLine(b); if (n === bl || (b.remove && Math.abs(n - bl) <= 1)) { a.found = true; a.miss = null; a.missFb = null; a.react = { kind: "ok", text: "That's the line. Now explain why before fixing it." }; } else { a.miss = n; a.missFb = lxFb("bad", `Line ${n} is fine.`, "Match it to: " + b.symptom); a.react = { kind: "bad", text: "Match the symptom to the job each line does." }; } },
         "lx-run"(el, a, step) { lxRun(el, a, step); return false; },
       },
       isExplained: true,
@@ -383,36 +384,36 @@ const LX_CHAT = `def chat_turn(client, history, user_msg):
     # your code here
 `;
 LX_STAGES[6] = {
-  goal: "Prove mastery by applying everything on your own: handle a fresh incident, build a streaming chatbot turn, and diagnose a raw stream.",
-  sumTitle: "Mission complete: the line is whole again", sumWho: "rohan", sumSay: "My reply arrived whole this time. And when it didn't, the app told me honestly.",
-  learned: [["Streaming", "Show replies while they're written, and know when they're really finished."], ["Your consumer", "Live printing, guards, join, finish_reason, errors, close."], ["Your chatbot", "History, streaming, one safe retry, honest status."]],
+  goal: "On your own: incident, chatbot, raw stream.",
+  sumTitle: "Mission complete: the line is whole again", sumWho: "rohan", sumSay: "Whole reply this time. And honest when it wasn't.",
+  learned: [["Streaming", "Show it live; know when it's finished."], ["Your consumer", "Print, guards, join, finish, errors, close."], ["Your chatbot", "History, one safe retry, honest status."]],
   steps: [
-    lxEventStep("m1", LX_M_EVENTS, { short: "Incident", title: "Incident: the Saturday rush", section: "Mastery · scenario reasoning", task: "Handle five new events on your own. Hints open only after a first attempt.",
-      who: "ila", say: "New night, new board. No coaching from me this time.", mentor: "Same three questions: text? finish signal? already shown? Plus one new one: have you already used your retry?",
+    lxEventStep("m1", LX_M_EVENTS, { short: "Incident", title: "Incident: the Saturday rush", section: "Mastery · scenario reasoning", task: "Handle five events solo.",
+      who: "ila", say: "New night, new board. No coaching from me this time.", mentor: "Text? Finish? Shown? Retry used?",
       hints: ["Check the raw line for retries already used.", "Quiet = partial, length = truncated, usage = log."], gate: true, xpKey: "m-board", xpLabel: "incident handled" }),
     { id: "m2", short: "Build the chatbot", title: "Build: a streaming chatbot turn", section: "7 · Practical application", concept: "chatbot",
-      task: "Write `chat_turn(client, history, user_msg)` from the spec, then **Run checks**. Nine checks cover normal, cut-off, broken and retry cases.",
-      who: "tanvi", say: "This is the real Restaurant Support Assistant. Everything you've learned in one function. You can start from your consume() if you like.",
-      mentor: "Reuse your loop from Code. The new parts are history, the single retry before any text, and printing an honest status after the reply.",
-      need: "Make all 9 checks pass.", hintGate: a => (a.runs || 0) > 0, hintGateText: "Mastery is independent: hints open after your first run.",
+      task: "Write `chat_turn(...)` from the spec. **Run checks**.",
+      who: "tanvi", say: "The real assistant. Everything, in one function.",
+      mentor: "New: history, one retry before text, status line.",
+      need: "Make all 9 checks pass.", hintGate: a => (a.runs || 0) > 0, hintGateText: "Run once to unlock hints.",
       hints: ["Structure: append user msg → `for attempt in range(2):` create a stream and loop it inside try/except/finally → if it failed with no text on attempt 0, pause(1) and continue; else break.", "Track `failed`, `parts`, `finish`. Status = error if failed, else from finish.", "After: if text, append assistant message. print(); if status != \"complete\": print(\"(\" + status + \")\"). return status."],
       coachMap: { M1: "history.append the user message before calling create(messages=history, stream=True).", M5: "Errors after text: no retry, status \"error\", print \"(error)\".", M6: "Error before text: pause(1), then one retry.", M7: "Limit attempts to 2 in total.", M8: "Close each stream in finally." },
       isDone: a => a.passed,
       body(a) {
         const mine = LS_().code.c4;
-        return `${lxEditor("m2", LX_CHAT, { file: "support_assistant.py", rows: 30 })}<div class="lx-row">${mine && lxA("c4").passed ? lxBtn("Insert my consume() from Code above", "lx-m2-ins", "", "g sm") : ""}</div>${lxRunBox("m2", a, "chat")}`;
+        return `${lxEditor("m2", LX_CHAT, { file: "support_assistant.py", rows: 30 })}<div class="lx-row">${mine && lxA("c4").passed ? lxBtn("Insert my consume()", "lx-m2-ins", "", "g sm") : ""}</div>${lxRunBox("m2", a, "chat")}`;
       },
       act: {
         "lx-m2-ins"(el, a) { const c = LS_().code; c.m2 = c.c4.trim() + "\n\n\n" + (c.m2 || LX_CHAT); },
         "lx-run"(el, a, step) { lxRun(el, a, step); return false; },
       },
-      okText: "A complete streaming chatbot turn: live, honest, safe retries, clean history.",
+      okText: "Live, honest, safe retries, clean history.",
       onPass(a) { lxAward("m-chat", a.runs === 1 ? 40 : 32, "chatbot turn built"); } },
     { id: "m3", short: "Diagnose", title: "Diagnose a raw stream", section: "Mastery · reading the wire", concept: "event",
-      task: "Read the captured stream. Type exactly what the user saw, then pick its honest status.",
-      who: "sana", say: "Last one. A customer complained; this is the captured stream. Tell me exactly what they saw and how it should be labelled.",
-      mentor: "Use only `content` values, in order, joined with nothing. Then look for a finish_reason.",
-      need: "Type the exact text and pick the status.", hintGate: a => (a.tries || 0) > 0,
+      task: "Type what the user saw. Pick the status.",
+      who: "sana", say: "Last one. What did they see, and what's the label?",
+      mentor: "`content` values, in order, joined with nothing.",
+      need: "Text + status.", hintGate: a => (a.tries || 0) > 0,
       hints: ["Skip role-only, empty and usage chunks.", "The last data line with choices has finish_reason \"length\"."],
       isDone: a => a.win,
       body(a) {
