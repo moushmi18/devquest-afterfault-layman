@@ -146,6 +146,7 @@ const LX_INDEP = `def consume(stream):
 function lxRunBox(id, a, suite, opts = {}) {
   return `<div class="lx-runrow">${lxBtn(ic("play", 13, "#fff") + " " + (opts.label || "Run checks"), "lx-run", `data-ed="${id}" data-suite="${suite}" data-testid="run-${id}" ${a.busy ? "disabled" : ""}`, a.busy ? "dis" : "p")}${lxPyBadge()}</div>
     ${a.err ? lxFb("bad", "Couldn't run.", a.err) : ""}
+    ${opts.chat ? lxChatPreview(id, a, { q: opts.q || "Where is my order?" }) : ""}
     <div class="lx-grid2 lx-results"><div class="lx-col"><div class="lbl">Terminal</div>${lxTerm(`<span class="lx-out">${a.demo ? esc(a.demo.screen) + (a.demo.error ? `\n<span class="er">${esc(a.demo.error)}</span>` : "") : '<span class="dim">Press Run.</span>'}</span>`, { id: "term-" + id, file: "my_code.py" })}</div>
     <div class="lx-col">${a.results ? lxTests(a.results) : `<div class="lx-card mini">${lxFlow(["normal", "messy", "cut off", "quiet"].concat(suite !== "script" ? ["broken"] : []).map(x => "🧪 " + x), "")}</div>`}</div></div>`;
 }
@@ -401,7 +402,7 @@ LX_STAGES[6] = {
       isDone: a => a.passed,
       body(a) {
         const mine = LS_().code.c4;
-        return `${lxEditor("m2", LX_CHAT, { file: "support_assistant.py", rows: 30 })}<div class="lx-row">${mine && lxA("c4").passed ? lxBtn("Insert my consume()", "lx-m2-ins", "", "g sm") : ""}</div>${lxRunBox("m2", a, "chat")}`;
+        return `${lxEditor("m2", LX_CHAT, { file: "support_assistant.py", rows: 30 })}<div class="lx-row">${mine && lxA("c4").passed ? lxBtn("Insert my consume()", "lx-m2-ins", "", "g sm") : ""}</div>${lxRunBox("m2", a, "chat", { chat: true, q: "Where is my order?" })}`;
       },
       act: {
         "lx-m2-ins"(el, a) { const c = LS_().code; c.m2 = c.c4.trim() + "\n\n\n" + (c.m2 || LX_CHAT); },

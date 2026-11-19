@@ -60,7 +60,7 @@ const QA = [
  [/\b(hi|hello|hey|namaste)\b/, "Hello. I'm Vyapti, your mentor on this mission. Ask me about this screen, any word you don't know, or say \"I'm stuck\"."],
  [/who are you|your name|what are you/, "I'm Vyapti, the amber orb in the side panel. I coach the squad. The AI Mentor switch in the top bar changes how I give tips."],
  [/thank/, "Anytime. Remember: a reply isn't done when it stops. It's done when it says it's done."],
- [/what is this|what.*game|what.*do here|how.*play|where.*start/, "This is DevQuest, a learning game. Dabba Dash's support bot stops mid-sentence (\"Your order is on the…\") while the dashboard says \"All good\". Over 7 stages you find out why and fix it. On the map, walk to the glowing 3.5 tower and press Enter mission."],
+ [/what is this|what.*game|what.*do here|how.*play|where.*start/, "This is DevQuest, a learning game. A Restaurant Support Assistant stops mid-sentence (\"Your order is on the…\") while the status board says it's delivered. Over 7 stages you find out why and fix it. On the map, walk to the glowing 3.5 tower and press Enter mission."],
  [/why.*(stop|freeze|froze|cut|half)|what.*(bug|wrong|problem)/, "The reply arrives in pieces. Tonight the connection got cut halfway, so the words just stopped. That part happens. The real bug: nobody checked for the finish signal, so the board called half a sentence \"delivered\"."],
  [/all good|green tick|delivered/, "The green \"All good\" tick was a lie. It only checked whether some text arrived, not whether the reply sent its finish signal. Quiet isn't done."],
  [/why.*stream|point of stream|why not.*once/, "Streaming doesn't make the bot smarter. It just shows the reply while it's being written, so customers see words in 0.2 s instead of staring at a spinner. Like live commentary instead of tomorrow's match report."],
@@ -68,7 +68,7 @@ const QA = [
  [/save|progress|refresh/, "Your progress saves on this device automatically. Restart in the bottom bar clears it."],
  [/lock/, "A lock means you haven't reached that stage yet. Tap it to see what it teaches, or Preview anyway if you want to peek."],
  [/phone|mobile|small/, "On a phone, turn it sideways for a bigger view. You can pinch to zoom, and the card below the game repeats the goal and my tip in bigger text."],
- [/real|actual (company|app)|dabba dash/, "Dabba Dash is made up, but the problem is real: many chat apps stream replies and must check for the finish signal."],
+ [/real|actual (company|app)|dabba dash/, "The Restaurant Support Assistant is made up, but the problem is real: many chat apps stream replies and must check for the finish signal."],
 ];
 function gloss(q) {
   const n = " " + norm(q) + " ";

@@ -67,6 +67,9 @@ function topbar(hearts, pill) {
     const [full, tot] = hearts;
     h = `<div class="hearts" data-testid="hearts">${Array.from({length:tot},(_,i)=>ic("heart",17,i<full?"#EF4444":"#E5E7EB")).join("")}</div>`;
   }
+  const classicNote = (typeof LEARN_ON !== "undefined" && !LEARN_ON)
+    ? `<div class="classic-note" data-testid="classic-note">You're on the old version of this mission. <a href="./">Open the current version</a></div>`
+    : "";
   return `<div class="top">
     <div class="wm">${ic("hex",30)}<span><span class="d">Dev</span><span class="q">Quest</span></span></div>
     <div class="mpill">${pill||"Afterfault · 3.5 The Unfinished Line"}</div>
@@ -75,7 +78,7 @@ function topbar(hearts, pill) {
     <button type="button" class="tog" data-act="toggle-ai" data-testid="ai-toggle">AI Mentor <div class="sw ${state.aiOn?"":"off"}"></div></button>
     <button type="button" class="theme-tog" data-act="toggle-theme" data-testid="theme-toggle">${ic(state.dark?"sun":"moon",14)} ${state.dark?"Light":"Dark"}</button>
     <img class="meav" src="${ART}${state.avatar}-face.jpg" alt="">
-  </div>`;
+  </div>${classicNote}`;
 }
 
 function rail(cur, done, nxt) {

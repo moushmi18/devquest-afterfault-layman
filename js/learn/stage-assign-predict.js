@@ -79,35 +79,36 @@ ${printLine}
 ${appendLine}
 ${joinLine}`;
 const LX_PRED = [
-  { id: "P1", title: "Ila removed flush=True", concept: "render", stream: '"Your order " · "is on " · "the way."',
+  { id: "P1", title: "Ila removed flush=True", concept: "render", stream: '"Your order " · "is on " · "the way."', streamKey: "p12",
     code: LX_BASE_LOOP('        print(piece, end="")'), explain: "`end=\"\"`, but **no flush**.",
     q: "What does Rohan see in the terminal while the reply streams?", options: [
       { t: "The words appear one by one on one line.", ok: false, why: "Without a new line or a flush, the text waits in the buffer." },
       { t: "Nothing for a while, then the whole sentence at once.", ok: true, why: "No new line + no flush = buffered till the end. Looks non-streaming." },
       { t: "Each piece on its own line.", ok: false, why: "`end=\"\"` means no new lines are added." }],
     outcome: () => lxTerm('<span class="dim">… 2.4 s of nothing …</span>\nYour order is on the way.') },
-  { id: "P2", title: "Ila removed end=\"\"", concept: "render", stream: '"Your order " · "is on " · "the way."',
+  { id: "P2", title: "Ila removed end=\"\"", concept: "render", stream: '"Your order " · "is on " · "the way."', streamKey: "p12",
     code: LX_BASE_LOOP("        print(piece, flush=True)"), explain: "Default `end=\"\\n\"` is back.",
     q: "What does the terminal look like?", options: [
       { t: "Your order is on the way.  (one line)", ok: false, why: "Default `end` adds a new line after every print." },
       { t: "Three lines: \"Your order\" / \"is on\" / \"the way.\"", ok: true, why: "Each print ends with a new line, so every chunk lands on its own line." },
       { t: "Nothing until the end.", ok: false, why: "New lines (and flush) push text out immediately." }],
     outcome: () => lxTerm("Your order \nis on \nthe way.") },
-  { id: "P3", title: "Ila changed the join", concept: "join", stream: '"Your" · " order" · " is" · " on" · " the" · " way."',
+  { id: "P3", title: "Ila changed the join", concept: "join", stream: '"Your" · " order" · " is" · " on" · " the" · " way."', streamKey: "p3",
     code: LX_BASE_LOOP('        print(piece, end="", flush=True)', "        parts.append(piece)", "    if piece:", 'reply = " ".join(parts)'), explain: "Last line joins with a space.",
+    tail: "\nprint()\nprint(repr(reply))",
     q: "What is `reply`?", options: [
       { t: '"Your order is on the way."', ok: false, why: "That's what `\"\".join` gives. A space join adds extra spaces." },
       { t: '"Your  order  is  on  the  way."  (double spaces)', ok: true, why: "Each piece already starts with a space; `\" \".join` adds another between them." },
       { t: '"Yourorderisontheway."', ok: false, why: "The pieces carry their own spaces, so they never run together." }],
     outcome: () => lxTerm('Your order is on the way.\n<span class="dim">>>> reply</span>\n\'Your  order  is  on  the  way.\'') },
-  { id: "P4", title: "Ila \"simplified\" the guard", concept: "skip", stream: 'role-only (content=None) · "Your order " · "is on the way." · finish',
+  { id: "P4", title: "Ila \"simplified\" the guard", concept: "skip", stream: 'role-only (content=None) · "Your order " · "is on the way." · finish', streamKey: "p4",
     code: LX_BASE_LOOP('        print(piece, end="", flush=True)', "    parts.append(piece)", "    if piece:"), explain: "`append` moved **outside** `if piece:`.",
     q: "What happens at the last line?", options: [
       { t: "reply is \"Your order is on the way.\"", ok: false, why: "`parts` now contains `None` values too." },
       { t: "TypeError: sequence item 0: expected str instance, NoneType found", ok: true, why: "`None` got into `parts`, and `join` only glues strings." },
       { t: "reply is \"NoneYour order is on the way.None\"", ok: false, why: "`join` doesn't convert None to text; it raises an error." }],
     outcome: () => lxTerm('Your order is on the way.<span class="er">\nTraceback (most recent call last):\n  File "support_bot.py", line 9\nTypeError: sequence item 0: expected str instance, NoneType found</span>') },
-  { id: "P5", title: "The labeller meets a long reply", concept: "finish", stream: '… "near the main" · finish_reason="length"',
+  { id: "P5", title: "The labeller meets a long reply", concept: "finish", stream: '… "near the main" · finish_reason="length"', streamKey: "length",
     code: `status = "partial"
 if finish == "stop":
     status = "complete"
@@ -118,25 +119,55 @@ print(status)`, explain: "`finish` = last `finish_reason`. Reply hit `max_tokens
       { t: "complete", ok: false, why: "Only `\"stop\"` gives complete." },
       { t: "truncated", ok: true, why: "`finish == \"length\"` → truncated. The reply was cut off by the token limit." },
       { t: "partial", ok: false, why: "We did get a finish signal; it was `\"length\"`." }],
-    outcome: () => lxTerm("Your order is with Arjun, near the main\ntruncated") },
-  { id: "P6", title: "Ila's \"always green\" patch", concept: "finish", stream: '"Your order " · "is on " · "the" · (stream ends, no finish chunk)',
+    outcome: () => lxTerm("truncated") },
+  { id: "P6", title: "Ila's \"always green\" patch", concept: "finish", stream: '"Your order " · "is on " · "the" · (stream ends, no finish chunk)', streamKey: "quiet",
     code: `for chunk in stream:
     ...                  # shows and keeps text correctly
 status = "complete"      # Ila: "if the loop ended, we're done"
 print(status)`, explain: "Status set without checking `finish_reason`.",
+    run: `parts = []
+for chunk in stream:
+    if not chunk.choices:
+        continue
+    piece = chunk.choices[0].delta.content
+    if piece:
+        print(piece, end="", flush=True)
+        parts.append(piece)
+status = "complete"      # Ila: "if the loop ended, we're done"
+print()
+print(status)`,
     q: "What does the board show for Rohan's chat?", options: [
       { t: "partial", ok: false, why: "That's the honest answer, but this code never checks. It always says complete." },
       { t: "complete, on half a sentence", ok: true, why: "The original bug. Loop ended ≠ finished." },
       { t: "An error", ok: false, why: "Nothing crashes. That's what makes this bug dangerous." }],
-    outcome: () => lxPhone("Your order is on the", "lie", { caret: true }) },
+    outcome: () => lxPhone("Your order is on the", "lie", { caret: true }), phone: true },
 ];
+function lxPredSource(p) { return (p.run || p.code) + (p.tail || ""); }
+function lxPredResult(p, a) {
+  if (a.fallback || !a.demo) {
+    return `<div class="lx-outcome" data-testid="p-result">${a.fallback ? `<p class="mini">Python didn't load, so here's the expected result.</p>` : ""}<div class="lbl">Result</div>${p.outcome()}</div>`;
+  }
+  const term = lxTerm(`<span class="lx-out">${a.demo.screen ? esc(a.demo.screen) : (a.busy ? '<span class="dim">Running…</span>' : '<span class="dim">Press Run.</span>')}${a.demo.error ? `\n<span class="er">${esc(a.demo.error)}</span>` : ""}</span>`, { id: "term-p-" + p.id, file: "ila_patch.py" });
+  const extra = p.phone ? lxPhone((a.demo.screen || "").split("\n")[0], "lie", { caret: true }) : "";
+  return `<div class="lx-outcome" data-testid="p-result"><div class="lbl">Real Python · result</div>${term}${extra}${a.demo.reply != null ? `<pre class="mini lx-mono">reply = ${esc(JSON.stringify(a.demo.reply))}</pre>` : ""}</div>`;
+}
+async function lxPredRun(el, a, p) {
+  a.busy = true; a.err = null; a.fallback = false; render();
+  const r = await PY.free(lxPredSource(p), p.streamKey || "normal");
+  a.busy = false;
+  if (!r.ok) { a.err = r.error; a.fallback = true; a.ran = true; a.react = { kind: "am", text: "Python didn't run, so we showed the expected result." }; }
+  else { a.demo = r.data.demo; a.ran = true; a.react = { kind: "ok", text: "That's the real output of this code." }; }
+  const q = lxA("pq-" + p.id); lxAward("p-" + p.id, q.tries === 1 ? 6 : 3, q.tries === 1 ? "predicted first time" : "predicted");
+  render();
+  if (a.demo && (a.demo.frames || a.demo.screen)) lxPlayFrames("term-p-" + p.id, a.demo);
+}
 LX_STAGES[3] = {
   goal: "Predict real code, then run it.",
   sumTitle: "You can read streaming code and predict it", sumWho: "tanvi", sumSay: "You read the code, not guessed. That's debugging.",
   learned: [["flush", "No flush = all at the end."], ["end", "Default end = one chunk per line."], ["join", "Use `\"\".join`."], ["Guards", "`None` in parts → TypeError."], ["finish_reason", "Loop ended ≠ finished."]],
   steps: LX_PRED.map((p, k) => ({
     id: "p" + (k + 1), short: p.id, title: `${p.id} · ${p.title}`, section: "Predict", concept: p.concept,
-    task: "Predict, then **Run it**.",
+    task: "Predict, then **Run it** in real Python.",
     who: k % 2 ? "tanvi" : "ila", say: k % 2 ? "Which line changed? What does it do?" : "Small improvement. What will customers see?",
     mentor: p.explain, need: "Predict, then run.",
     hints: ["Find the one line that differs from the loop you learned in Explore.", LX_CONCEPTS[p.concept].how],
@@ -145,10 +176,11 @@ LX_STAGES[3] = {
       const q = lxA("pq-" + p.id);
       return `<div class="lx-grid2"><div class="lx-col">${`<div class="lx-flow"><span class="am">🔧 ${md(p.explain)}</span></div><div class="lx-flow"><span>📡 ${md(p.stream)}</span></div>`}${lxCode(p.code, { title: "ila_patch.py" })}</div>
         <div class="lx-col">${lxQ("pq-" + p.id, { prompt: p.q, one: true, options: p.options })}
-        ${q.solved ? `<div class="lx-row">${lxBtn(ic("play", 13, "#fff") + (a.ran ? " Run again" : " Run it"), "lx-p-run", `data-p="${k}" data-testid="p-run"`, "p")}</div>` : `<p class="mini">Predict right to unlock Run.</p>`}
-        ${a.ran ? `<div class="lx-outcome"><div class="lbl">Result</div>${p.outcome()}</div>` : ""}</div></div>`;
+        ${q.solved ? `<div class="lx-row">${lxBtn(ic("play", 13, "#fff") + (a.busy ? " Running…" : a.ran ? " Run again" : " Run it"), "lx-p-run", `data-p="${k}" data-testid="p-run" ${a.busy ? "disabled" : ""}`, a.busy ? "dis" : "p")}${lxPyBadge()}</div>` : `<p class="mini">Predict right to unlock Run.</p>`}
+        ${a.err && a.fallback ? lxFb("am", "Couldn't run Python.", a.err) : ""}
+        ${a.ran || a.busy ? lxPredResult(p, a) : ""}</div></div>`;
     },
-    act: { "lx-p-run"(el, a) { a.ran = true; const q = lxA("pq-" + p.id); lxAward("p-" + p.id, q.tries === 1 ? 6 : 3, q.tries === 1 ? "predicted first time" : "predicted"); } },
+    act: { "lx-p-run"(el, a) { lxPredRun(el, a, p); return false; } },
   })),
   onFinish() { lxBadge("seer"); lxAward("stage-3", 4, "Predict complete"); },
 };

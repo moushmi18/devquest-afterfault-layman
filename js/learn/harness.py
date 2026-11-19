@@ -144,9 +144,13 @@ S_QUIET = [ROLE, T("Your order "), T("is on "), T("the")]           # the line g
 S_MIDERR = [ROLE, T("Your refund "), T("will be "), ERR]
 S_EARLYERR = [ERR]
 S_TABLE = [ROLE, T("Your table "), T("for two "), T("is ready."), STOP, USAGE]
+S_P12 = [T("Your order "), T("is on "), T("the way.")]
+S_P3 = [T("Your"), T(" order"), T(" is"), T(" on"), T(" the"), T(" way.")]
+S_P4 = [ROLE, T("Your order "), T("is on the way."), STOP]
 
 STREAMS = {"normal": S_NORMAL, "messy": S_MESSY, "length": S_LENGTH, "quiet": S_QUIET,
-           "miderr": S_MIDERR, "earlyerr": S_EARLYERR, "table": S_TABLE}
+           "miderr": S_MIDERR, "earlyerr": S_EARLYERR, "table": S_TABLE,
+           "p12": S_P12, "p3": S_P3, "p4": S_P4}
 
 
 def text_of(events):
@@ -164,7 +168,7 @@ def grew(frames):
 
 # ---------------------------------------------------------------- running student code
 class Run:
-    def __init__(self, code, script, extra=None):
+    def __init__(self, code, script, extra=None, inject_stream=False):
         self.screen = Screen()
         self.client = OpenAI(script=script, screen=self.screen)
         self.error = None
@@ -177,6 +181,14 @@ class Run:
         sys.modules["openai"] = fake_openai
         self.ns["pause"] = lambda s=1: self.pauses.append(s)
         self.ns["APIConnectionError"] = APIConnectionError
+        if inject_stream:
+            events = script[0] if script else []
+            self.ns["stream"] = self.client.chat.completions.create(model="gpt-4o-mini", messages=[], stream=True)
+            fin = None
+            for e in events:
+                if e.get("t") == "finish":
+                    fin = e.get("r")
+            self.ns["finish"] = fin
         if extra:
             self.ns.update(extra)
         old = sys.stdout
@@ -387,6 +399,11 @@ def run_suite(name, code):
 
 
 def run_free(code, stream_key="normal"):
-    """Just run the code against one stream and report what the terminal showed."""
-    r = Run(code, [STREAMS.get(stream_key, S_NORMAL)])
-    return json.dumps({"results": [], "demo": demo(r)})
+    """Run a snippet against one stream. Injects `stream` and `finish` so Predict code can run as-is."""
+    events = STREAMS.get(stream_key, S_NORMAL)
+    r = Run(code, [events], inject_stream=True)
+    d = demo(r)
+    d["reply"] = r.ns.get("reply")
+    d["status"] = r.ns.get("status")
+    d["finish"] = r.ns.get("finish")
+    return json.dumps({"results": [], "demo": d})

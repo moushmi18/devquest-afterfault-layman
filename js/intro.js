@@ -3,13 +3,13 @@ const INTRO_T = 45;
 const ISHOTS = [[0,6],[6,12],[12,21],[21,28.3],[28.3,38.6],[38.6,45]];
 /* voiceover: [start, file, duration, subtitle, speaker]. Narrator + character lines, timed to the shots. */
 const IVO = [
-  [0.5, "n1", 4.46, "Friday, 9:40 PM. Monsoon rush in the Retry Storm."],
+  [0.5, null, 4.2, "Dinner rush. Customers are waiting on their orders."],
   [6.3, "n2", 4.22, "Rohan orders dinner. Then asks where it is."],
   [10.6, "rohan1", 1.39, "Where is my order?", "Rohan"],
   [12.4, "n3", 2.88, "The reply starts typing, word by word…"],
   [16.0, "n4", 2.74, "…and stops. Mid-sentence."],
   [18.8, "rohan2", 2.21, "Hello? You still there?", "Rohan"],
-  [21.4, "n5", 4.78, "Replies freeze across the city. The board says: All good."],
+  [21.4, null, 4.5, "Replies freeze. The status board still says: All good."],
   [26.3, "ila", 1.8, "Let them think it's done.", "Ila"],
   [28.6, "n6", 1.92, "Tanvi's crew spots it first."],
   [30.6, "tanvi", 4.27, "That's my chat. Half a sentence. Green tick.", "Tanvi"],
@@ -22,7 +22,7 @@ let introRAF = null, introLast = 0, introAudio = null;
 const IVO_EL = {};  /* one <audio> per clip, created lazily */
 function voEl(f) { if (!IVO_EL[f]) { const a = new Audio(`audio/vo-${f}.mp3`); a.preload = "auto"; IVO_EL[f] = a; } return IVO_EL[f]; }
 function voPauseAll() { Object.values(IVO_EL).forEach(a => { if (!a.paused) a.pause(); }); }
-function voActive(t) { return IVO.find(([a, f, d, , , ai]) => t>=a && t<a+d && !(ai && !state.aiOn)); }
+function voActive(t) { return IVO.find(([a, f, d, , , ai]) => f && t>=a && t<a+d && !(ai && !state.aiOn)); }
 /* keep voice in sync with the timeline: play the clip under the playhead at the right offset, pause the rest */
 function voSync(t) {
   const I = state.intro, cur = I.playing && I.sound ? voActive(t) : null;
@@ -46,12 +46,12 @@ function renderIntro() {
       <div class="ish" data-s="0"><div class="icam"><img class="ibg" src="${ART}retry-storm.jpg" alt=""><div class="irain"></div><div class="iveil"></div>
         <div class="isig"><i class="r"></i><i class="a"></i><i class="g"></i></div></div></div>
       <div class="ish" data-s="1"><div class="icam lav"><div class="iroom"></div><img class="ichar rohan" src="${ART}rohan-body.jpg" alt="Rohan">
-        <div class="iphone small"><div class="ph-h"><span class="logo-dd">DD</span>Dabba Dash</div><div class="iorder">${ic("basket",26,"#F59E0B")}<b>Biryani × 1</b><span class="iplaced">${ic("check",14,"#fff")} Order placed</span></div><div class="b u iask">Where is my order?</div></div></div></div>
-      <div class="ish" data-s="2"><div class="icam lav2"><div class="iphone big"><div class="ph-h"><span class="logo-dd">DD</span>Dabba Dash support<span class="sp"></span><span class="st-ok">● live</span></div>
+        <div class="iphone small"><div class="ph-h"><span class="logo-dd">RS</span>Restaurant Support</div><div class="iorder">${ic("basket",26,"#F59E0B")}<b>Biryani × 1</b><span class="iplaced">${ic("check",14,"#fff")} Order placed</span></div><div class="b u iask">Where is my order?</div></div></div></div>
+      <div class="ish" data-s="2"><div class="icam lav2"><div class="iphone big"><div class="ph-h"><span class="logo-dd">RS</span>Restaurant Support Assistant<span class="sp"></span><span class="st-ok">● live</span></div>
         <div class="b u">Where is my order?</div><div class="b bot"><span id="itype"></span><span class="caret"></span></div><div class="ifrozen" id="ifrozen">${ic("clock",14,"#EF4444")} <span id="itimer">00:00</span></div></div>
         ${words.map((w,i)=>`<span class="ifly" data-i="${i}">${w}</span>`).join("")}</div></div>
       <div class="ish" data-s="3"><div class="icam dark"><img class="ibg" src="${ART}retry-storm.jpg" alt=""><div class="iglitch"></div>
-        <div class="iwall">${ic("check",30,"#fff")}<b>All good</b><span>4,000 chats ✓</span></div>
+        <div class="iwall">${ic("check",30,"#fff")}<b>All good</b><span>Status board · 4,000 chats ✓</span></div>
         <div class="imini m1">Your order is on the<span class="caret"></span></div><div class="imini m2">Your table is<span class="caret"></span></div><div class="imini m3">Refund will be<span class="caret"></span></div>
         <div class="iila"><img src="${ART}ila-face.jpg" alt="Ila">${ic("glitch",26,"#FCA5A5")}</div></div></div>
       <div class="ish" data-s="4"><div class="icam lav"><img class="ichar tanvi" src="${ART}tanvi-body.jpg" alt="Tanvi"><img class="iface samar" src="${ART}samar-face.jpg" alt="Samar"><img class="iface sana" src="${ART}sana-face.jpg" alt="Sana">
@@ -71,7 +71,7 @@ function renderIntro() {
       <span class="itime" id="itime"></span>
       <button type="button" class="ib wide" data-act="intro-sound" data-testid="intro-sound" aria-label="Mute or unmute" aria-pressed="${!I.sound}">${ic(I.sound?"wave":"x",14,"currentColor")} ${I.sound?"Voice + sound on":"Muted"}</button>
     </div></div>` + tagEl("Entry · Intro");
-  IVO.forEach(v => voEl(v[1]));  /* preload every clip */
+  IVO.forEach(v => { if (v[1]) voEl(v[1]); });  /* preload clips that still have audio */
   if (I.sound && I.playing && !introAudio) introSound(true);  /* sound on by default: the Enter-mission click allows autoplay */
   introApply(I.t);
   if (I.playing && !introRAF) { introLast = performance.now(); introRAF = requestAnimationFrame(introLoop); }

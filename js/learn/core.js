@@ -302,7 +302,7 @@ function lxMasteryReport() {
   return `<div class="lx-card lx-report"><b>Mastery report</b><div class="lx-skills">${skills.map(([n, keys, si, sk]) => {
     const got = keys.filter(k => L.xp[k] != null).length, pct = Math.round(100 * got / keys.length);
     return `<div class="lx-skill"><span>${esc(n)}</span>${pbar(pct, pct === 100 ? "#10B981" : "linear-gradient(90deg,#7C3AED,#F59E0B)", 10)}<em>${pct === 100 ? "solid" : `<button type="button" class="lx-link" data-act="lx-revisit" data-i="${si}" data-k="${sk}">revisit</button>`}</em></div>`;
-  }).join("")}</div><div class="lx-badges">${Object.entries(LX_BADGES).map(([k, b]) => `<div class="lx-bcard ${L.badges.includes(k) ? "on" : ""}" title="${esc(b.d)}"><span>${ic(b.ic, 18, "#fff")}</span><b>${b.n}</b></div>`).join("")}</div></div>`;
+  }).join("")}</div><div class="lx-badges">${Object.entries(LX_BADGES).map(([k, b]) => `<div class="lx-bcard ${L.badges.includes(k) ? "on" : ""}"><span>${ic(b.ic, 18, "#fff")}</span><div><b>${esc(b.n)}</b><p>${esc(b.d)}</p></div></div>`).join("")}</div></div>`;
 }
 
 /* ---------- actions */
@@ -367,15 +367,49 @@ function lxTests(results) {
   const pass = results.filter(r => r.pass).length;
   return `<div class="lx-tests" data-testid="tests"><div class="lx-tests-h"><b>Checks</b><span class="chip ${pass === results.length ? "grn" : "red"}">${pass} / ${results.length} passing</span></div>${results.map(r => `<div class="lx-t ${r.pass ? "pass" : "fail"}" data-testid="t-${r.id}"><span class="bx">${ic(r.pass ? "check" : "x", 11, "#fff")}</span><div><b>${esc(r.id)}</b> ${esc(r.name)}${r.why ? `<p>${esc(r.why)}</p>` : ""}</div></div>`).join("")}</div>`;
 }
+function lxChatText(s) {
+  s = String(s || "");
+  const m = s.trimEnd().match(/\n\((complete|truncated|partial|error)\)\s*$/);
+  if (m) return { text: s.slice(0, m.index), status: m[1] };
+  return { text: s, status: null };
+}
+function lxApplyChat(root, raw, done) {
+  if (!root) return;
+  const { text, status } = lxChatText(raw);
+  const t = root.querySelector(".lx-ptext");
+  const st = root.querySelector(".lx-pst");
+  if (t) t.textContent = text.replace(/\n+$/, "");
+  if (st) {
+    const map = { complete: ["st-ok", "✓ complete"], truncated: ["st-am", "✂ truncated · hit the length limit"], partial: ["st-am", "◐ partial · not finished"], error: ["st-rd", "⚠ error · connection lost"] };
+    if (done && !status && text.trim()) status = "complete";
+    const v = (done && status && map[status]) ? map[status] : [done ? "st-ok" : "st-ok", done ? "● sent" : "● streaming"];
+    st.className = "lx-pst " + v[0];
+    st.textContent = v[1];
+  }
+}
+function lxChatPreview(id, a, opts = {}) {
+  const raw = a.demo ? (a.demo.screen || "") : "";
+  const parsed = raw ? lxChatText(raw) : { text: "", status: null };
+  if (a.demo && !parsed.status && parsed.text.trim()) parsed.status = "complete";
+  return `<div class="lx-chatui" data-testid="chat-preview"><div class="lbl">Chat · live preview</div>${lxPhone(a.demo ? parsed.text : null, a.demo ? (parsed.status || "live") : "idle", { id: "chat-" + id, q: opts.q || "Where is my order?", caret: !parsed.status, spinner: !a.demo })}</div>`;
+}
 function lxPlayFrames(elId, demo, done) {
   const el = document.getElementById(elId); if (!el || !demo) { done && done(); return; }
   const frames = (demo.frames || []).filter((f, k, arr) => k === 0 || f !== arr[k - 1]);
   let k = 0;
   const out = el.querySelector(".lx-out") || el;
+  const chat = document.querySelector("[data-testid=chat-preview] .lx-phone, [data-testid=chat-preview] .phone, #chat-" + (elId || "").replace(/^term-/, ""));
   const tick = () => {
-    if (!document.body.contains(out)) return;
-    if (k < frames.length) { out.innerHTML = esc(frames[k]) + '<span class="caret"></span>'; k++; setTimeout(tick, 380); }
-    else { out.innerHTML = esc(demo.screen) + (demo.error ? `\n<span class="er">${esc(demo.error)}</span>` : ""); done && done(); }
+    if (!document.body.contains(out) && !(chat && document.body.contains(chat))) return;
+    if (k < frames.length) {
+      if (document.body.contains(out)) out.innerHTML = esc(frames[k]) + '<span class="caret"></span>';
+      if (chat) lxApplyChat(chat, frames[k], false);
+      k++; setTimeout(tick, 380);
+    } else {
+      if (document.body.contains(out)) out.innerHTML = esc(demo.screen) + (demo.error ? `\n<span class="er">${esc(demo.error)}</span>` : "");
+      if (chat) lxApplyChat(chat, demo.screen, true);
+      done && done();
+    }
   };
   tick();
 }
