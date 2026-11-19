@@ -14,7 +14,7 @@ const TERM_RULES = [
  [/\bIndexError\b/,"indexerror"],[/\bConnectionError\b/,"connerror"],[/\bretry storm\b/i,"storm"],[/\bretr(?:y|ies|ying)\b/i,"retry"],
  [/\brate-limit\w*|\b429\b/i,"ratelimit"],[/\btruncated\b/i,"truncated"],[/\bpartial\b/i,"partial"],[/\btemperature\b/i,"temperature"],
  [/\bCLI\b/,"cli"],[/\bterminal\b/i,"terminal"],[/\bstderr\b/,"stderr"],[/\bconsumer\b/i,"consumer"],[/\bRegenerate\b/i,"regenerate"],
- [/\bhistory\b/i,"history"],[/\bLine Keeper\b/i,"linekeeper"],[/\bops wall\b/i,"opswall"],[/\bAll[- ]Good\b/i,"allgood"],
+ [/\bhistory\b/i,"history"],[/\bLine Keeper\b/i,"linekeeper"],[/\b(?:ops wall|status board)\b/i,"opswall"],[/\bAll[- ]Good\b/i,"allgood"],
  [/\bhonest (?:status|label)s?\b/i,"honest"],[/\b(?:single|one) pass\b/i,"singlepass"],[/\bnewline\b/i,"newline"],[/\bPython\b/,"python"],
  [/\bguard(?:s|ed)?\b/i,"guard"],[/\bVyapti\b/,"@vyapti"],[/\bIla(?:'s)?\b/,"@ila"],[/\bTanvi\b/,"@tanvi"],[/\bRohan(?:'s)?\b/,"@rohan"],
  [/\bSamar\b/,"@samar"],[/\bSana\b/,"@sana"],
@@ -25,7 +25,7 @@ const CODE_RULES = [
  [/usage/,"usage"],[/KeyError/,"keyerror"],[/append|parts/,"append"],[/join/,"join"],[/temperature/,"temperature"],[/if piece/,"guard"],
  [/break|continue/,"breakcont"],[/try|except/,"tryexcept"],
 ];
-const SKIP = "h1,h2,h3,.kick,.lbl,.ava,.hub-world,.lm-sw,script,style,svg,button,[data-act],[data-hub],input,textarea,.code,.term,.top,.hub-map,.rail,.lm-term,.lm-star,kbd,.ddb,.dds,.ddp,.xd-ghost,[data-xd],[data-xt]";
+const SKIP = "h1,h2,h3,.kick,.lbl,.ava,.hub-world,.lm-sw,script,style,svg,button,[data-act],[data-hub],input,textarea,.code,.term,.top,.hub-map,.rail,.lm-term,.lm-star,kbd,.ddb,.dds,.ddp,.xd-ghost,[data-xd],[data-xt],.lx-bcard,.lx-badges,.lx-skill";
 
 const app = () => document.getElementById("app");
 function wrapTerms(root) {
@@ -138,10 +138,10 @@ function modal(html, cls = "") {
 function closeModal() { root.querySelectorAll(".lm-veil").forEach(v => { if (v._t) clearInterval(v._t); v.remove(); }); }
 
 const WELCOME = [
- ["What is this?", `<p><b>DevQuest</b> is a learning game. In this demo mission, <b>The Unfinished Line</b>, you play a junior engineer at <b>Dabba Dash</b>, a made-up food delivery app.</p><p>Its support chatbot keeps stopping mid-sentence (<i>"Your order is on the…"</i>) while the team's dashboard says <b>"All good"</b>. Your job: find out why, and fix it.</p><p class="lm-soft">No coding experience needed. Every technical word has a tap-to-explain.</p>`],
+ ["What is this?", `<p><b>DevQuest</b> is a learning game. This mission, <b>The Unfinished Line</b>, teaches <b>Streaming Responses</b>.</p><p>A <b>Restaurant Support Assistant</b> stops mid-sentence (<i>"Your order is on the…"</i>) while the <b>status board</b> still says <b>Delivered</b>. Find out why, and make the reply arrive whole.</p><p class="lm-soft">No coding experience needed. Tap a dotted word for a plain meaning.</p>`],
  ["The one big idea", `<p>AI chatbots send their replies <b>piece by piece</b> (this is called <i>streaming</i>), like live cricket commentary, ball by ball.</p><p>A reply only counts as <b>finished</b> when it sends its own <b>finish signal</b>. If the words just stop, it isn't done, it's broken. Quiet isn't done.</p>${tryitHTML()}`],
  ["7 short stages", `<ol class="lm-stages">${STAGES.map((s, i) => `<li><b>${s}</b> ${LM_STAGE_HINT[i]}</li>`).join("")}</ol>`],
- ["How to play", `<ol class="lm-steps"><li>On the map, walk to the glowing <b>3.5</b> tower (tap the map, or use the arrow keys) and press <b>Enter mission</b>.</li><li>Pick who's on shift and watch the short intro.</li><li>Work through the stages shown along the top. Each one ends with a short <b>"What you just learned"</b> recap.</li><li>Your progress saves on this device, so a refresh won't lose it. <b>Restart</b> clears it.</li></ol><p class="lm-soft">A <b>*</b> next to a number (like <b>0* XP</b>) means it's a sample value for this demo, not an error.</p>`],
+ ["How to play", `<ol class="lm-steps"><li>On the map, walk to the glowing <b>3.5</b> tower (tap or use the arrow keys) and press <b>Enter mission</b>.</li><li>Pick who's on shift, then start. A short story trailer is optional.</li><li>Work through the stages along the top. Each one ends with a short recap.</li><li>Progress saves on this device. <b>Restart</b> clears it.</li></ol><p class="lm-soft">A <b>*</b> next to a number (like <b>0* XP</b>) is a sample value for this demo, not an error.</p>`],
  ["Who's who", `<div class="lm-castgrid">${Object.keys(LM_CAST).map(castHTML).join("")}</div>`],
  ["Help is always here", `<ul class="lm-steps"><li><span class="lm-term">Dotted words</span>: tap or hover for a plain-English meaning.</li><li><b>Help</b> (bottom bar): reopen this guide, take a quick tour of the screen, see recaps.</li><li><b>Glossary</b>: every term, with an everyday comparison.</li><li><span class="chip">💡 Explain lines</span> on code panels: a simple note for each line of code.</li></ul>`],
 ];

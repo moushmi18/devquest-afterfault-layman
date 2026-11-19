@@ -57,7 +57,7 @@ const LM_GLOSS = [
  ["history","Chat history","Tools & settings","The bot's memory of the conversation, used to answer follow-up questions.","The waiter remembering what you already ordered."],
  ["tests","Tests (T1–T15)","Tools & settings","Automatic checks that run your code against many situations. \"hidden\" ones are run by the server without showing details.","A driving test with a few surprise manoeuvres."],
  ["linekeeper","Line Keeper","Game & story","The name of the code you build: it keeps every word and tells the truth about whether the reply finished.","A careful courier who delivers every word and says honestly if one is missing."],
- ["opswall","Ops wall","Game & story","The big status dashboard the Dabba Dash operations team watches.","The departures board at a railway station."],
+ ["opswall","Status board","Game & story","The live dashboard of chat statuses (complete, partial, truncated, error). A green tick is only honest when the finish signal arrived.","The departures board at a railway station."],
  ["xp","XP","Game & story","Experience points: your progress score. A * next to a number means it is a sample value, not final.","Points on a loyalty card."],
  ["star","* (asterisk)","Game & story","Any number with a * (XP, levels, shield, timings, budgets) is a sample placeholder for this demo, not a final value. It is not an error.","\"Prices for illustration only.\""],
  ["hearts","Hearts","Game & story","Lives in the Mastery stage. A wrong label costs one; lose all three and you simply replay that phase. No real penalty.","Lives in a mobile game."],
@@ -67,20 +67,20 @@ const LM_GLOSS = [
 ];
 const LM_CAST = {
  vyapti:["Vyapti","vyapti-speak","Your AI mentor, the glowing amber orb. Gives the tips in the left panel (switch with AI Mentor in the top bar)."],
- ila:["Ila Varghese","ila-face","The mischief-maker on the ops team. Her board shows \"All good\" even when replies break, and she keeps pushing risky \"improvements\". You undo them."],
+ ila:["Ila Varghese","ila-face","The mischief-maker on the ops team. Her status board shows \"All good\" even when replies break, and she keeps pushing risky \"improvements\". You undo them."],
  tanvi:["Tanvi Shah","tanvi-face","Squad member (CSE · lead analyst). Spots the half-finished chat with a green tick."],
  rohan:["Rohan Iyer","rohan-face","Squad member (ECE · comms). In the story he is also the hungry customer whose biryani reply freezes mid-sentence."],
  samar:["Samar Kulkarni","samar-face","Squad member (Mechanical · physical systems). Notices when a chat \"goes dry\"."],
  sana:["Sana Qureshi","sana-face","Squad member (Civil · structural risk). Watches where replies crack."],
 };
 const LM_STAGE_HINT = [
- "Spot the problem: a reply stops mid-sentence, but the dashboard says \"All good\".",
- "See how a reply travels piece by piece from the AI to the phone, and what each piece means.",
- "Decide what to do with each live event: show it, label it honestly, or retry once.",
- "Guess what customers will see after 6 risky code changes, then watch them run.",
- "Build the \"Line Keeper\" code from blocks, then finish the last step yourself.",
- "Find and fix 5 sneaky bugs without hiding the problem.",
- "Final challenge: keep 5 live chats honest while a fake \"All good\" board fights back.",
+ "See why a reply can stop halfway — and why the status board still said it was delivered.",
+ "Open a stream: chunks, events, live display, join, and the finish signal.",
+ "Run a live status board: pick the honest move for each event.",
+ "Predict what customers will see after one line of code changes, then run it.",
+ "Write a Python stream consumer: walk through it, fill the blanks, then code it.",
+ "Debug five broken consumers: reproduce, locate, explain, fix, re-test.",
+ "On your own: handle an incident, build a streaming chatbot turn, read a raw stream.",
 ];
 const LM_NODE_HINT = {
  "3.1":"How apps ask servers for data and read the reply's status code.",

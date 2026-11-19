@@ -238,7 +238,8 @@ LX_STAGES[1] = {
       body(a) {
         const key = (k, label) => `<button type="button" class="lx-key ${a[k] ? "ok" : ""} ${a.miss === k ? "bad" : ""}" data-act="lx-e3-key" data-k="${k}">${label}</button>`;
         const why = { choices: "`choices` is the list of answers. Usually one, so we use `choices[0]`. The words are deeper inside.", index: "`index` says which choice this is (0). No words here.", delta: "Close! `delta` holds what's new, but the words are in a field inside it.", role: "`role` says who is speaking (the assistant). It only appears in the first chunk.", usage: "`usage` counts tokens. It's `None` here; an optional final chunk carries it." };
-        return `<div class="lx-grid2"><div class="lx-col"><div class="lx-json" data-testid="chunk-json">
+        return `${lxTeach("Where the words live", [["delta.content", "The new words in this chunk. Some chunks have none."], ["finish_reason", "Says whether the reply is over. It's `None` until the last chunk."]])}
+          <div class="lx-grid2"><div class="lx-col"><div class="lx-json" data-testid="chunk-json">
 <span class="p">chunk = {</span>
   ${key("choices", '"choices"')}: [ {
       ${key("index", '"index"')}: 0,
